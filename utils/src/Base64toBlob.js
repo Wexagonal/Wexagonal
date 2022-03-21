@@ -11,11 +11,13 @@ import fetch, {
     Response,
 } from 'node-fetch'
 
-
+const globalvar = {}
 if (typeof self === 'undefined') {
-    const self = {}
-    self.Blob = Blob
+    globalvar.Blob = Blob
+}else{
+    globalvar.Blob = self.Blob
 }
+
 const Base64toBlob = (base64_data) => {
     const fileatob = (str) => {
         try {
@@ -30,7 +32,7 @@ const Base64toBlob = (base64_data) => {
     for (let i = 0; i < byteString.length; i++) {
         intArray[i] = byteString.charCodeAt(i);
     }
-    return new self.Blob([intArray], { type: 'image/png' });
+    return new globalvar.Blob([intArray], { type: 'image/png' });
 }
 
 export default Base64toBlob;

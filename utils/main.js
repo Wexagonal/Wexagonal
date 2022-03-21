@@ -13,9 +13,12 @@ import fetch, {
     Response,
 } from 'node-fetch'
 
+
+const globalvar = {}
 if (typeof self === 'undefined') {
-    const self = {}
-    self.FormData = FormData
+    globalvar.FormData = FormData
+}else{
+    globalvar.FormData = self.FormData
 }
 import crypa from './src/crypa.js'
 import hexo from './app/hexo.js'
@@ -96,7 +99,7 @@ const handle = async (req, db) => {
 
             switch (q('action')) {
                 case 'upload':
-                    const formData = new self.FormData()
+                    const formData = new globalvar.FormData()
                     formData.append(imgConfig.fieldName, Base64toBlob(req.body), `${new Date().getTime()}.jpg`)
                     return gres({
                         ok: 1,
