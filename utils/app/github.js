@@ -53,14 +53,26 @@ const github = {
     repo: {
         list: async (config) => {
             config.username = config.username || await github.user.name(config)
-            const res = await end('/users/' + config.username + '/repos', config.token, {
-                init: {
-                    type: 'all',
-                    sort: 'updated',
-                    per_page: 100,
-                    page: 1
+            const res = await(async()=>{
+                let page = 1
+                let endres;
+                const nres = []
+                while(1){
+                    endres = await end('/user/repos', config.token, {
+                        init: {
+                            type: 'all',
+                            sort: 'updated',
+                            per_page: 100,
+                            page: page
+                        }
+                    })
+                    nres.push(...endres)
+                    if(endres.length < 100){
+                        return nres
+                    }
+                    page++
                 }
-            })
+            })()
             if (!res) {
                 return { ok: 0 }
             }
