@@ -21,7 +21,7 @@ const tester = async (req, db) => {
                         await github.repo.list({
                             token: q('token'),
                             username: q('username'),
-                            org: q('org')
+                            org: Number(q('org'))
                         })
                     )
                 case 'list_branches':

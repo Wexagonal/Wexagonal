@@ -53,11 +53,11 @@ const github = {
     repo: {
         list: async (config) => {
             config.username = config.username || await github.user.name(config)
-            const res = await(async()=>{
+            const res = await (async () => {
                 let page = 1
                 let endres;
                 const nres = []
-                while(1){
+                while (1) {
                     endres = await end('/user/repos', config.token, {
                         init: {
                             type: 'all',
@@ -66,8 +66,12 @@ const github = {
                             page: page
                         }
                     })
-                    nres.push(...endres)
-                    if(endres.length < 100){
+                    for (let i = 0; i < endres.length; i++) {
+                        if (!!config.org || (endres[i].owner.login === config.username && !config.org)) {
+                            nres.push(endres[i])
+                        }
+                    }
+                    if (endres.length < 100) {
                         return nres
                     }
                     page++
