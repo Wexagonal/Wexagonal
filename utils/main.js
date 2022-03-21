@@ -13,8 +13,8 @@ import fetch, {
     Response,
 } from 'node-fetch'
 
-if (!self) {
-    self = this || global || {}
+if (typeof self=== 'undefined') {
+    self = this || {}
 }
 if (!self.FormData) {
     self.FormData = FormData
