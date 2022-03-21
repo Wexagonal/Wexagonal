@@ -1,0 +1,31 @@
+{
+  "name": "wexagonal",
+  "version": "0.0.0",
+  "description": "A Powerful and Useful Hexo Manager with Multi Platform and Serverless",
+  "main": "package.json",
+  "scripts": {
+    "build:cfworker": "npx webpack --config ./build/CloudFlareWorker.config.js",
+    "dev:vercel": "npx vercel dev --debug",
+    "run:vercel": "npx vercel dev -p 4000",
+    "run:node": "node ./api/Node.js",
+    "dev:localdb": "node ./Simple_HTTP_JSON_DB_API.js"
+  },
+  "author": "",
+  "type": "module",
+  "license": "ISC",
+  "devDependencies": {
+    "@vercel/node": "^1.13.0",
+    "pkg": "^5.5.2",
+    "webpack": "^5.69.1",
+    "webpack-cli": "^4.9.2"
+  },
+  "dependencies": {
+    "crypto-js": "^4.1.1",
+    "firebase": "^9.6.7",
+    "form-data": "^4.0.0",
+    "js-yaml": "^4.1.0",
+    "leancloud-storage": "^4.12.2",
+    "mongodb": "^4.4.0",
+    "node-fetch": "^3.2.3"
+  }
+}
