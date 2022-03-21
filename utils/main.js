@@ -14,9 +14,7 @@ import fetch, {
 } from 'node-fetch'
 
 if (typeof self === 'undefined') {
-    const self = this || {}
-}
-if (!self.FormData) {
+    const self = {}
     self.FormData = FormData
 }
 import crypa from './src/crypa.js'

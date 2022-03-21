@@ -11,10 +11,9 @@ import fetch, {
     Response,
 } from 'node-fetch'
 
+
 if (typeof self === 'undefined') {
-    const self = this || {}
-}
-if (!self.Blob) {
+    const self = {}
     self.Blob = Blob
 }
 const Base64toBlob = (base64_data) => {

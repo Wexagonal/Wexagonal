@@ -5,8 +5,8 @@
   "main": "package.json",
   "scripts": {
     "build:cfworker": "npx webpack --config ./build/CloudFlareWorker.config.js",
-    "dev:vercel": "npx vercel dev --debug",
-    "run:vercel": "npx vercel dev -p 4000",
+    "dev:vercel": "npx vercel --debug",
+    "run:vercel": "npx vercel -p 4000",
     "run:node": "node ./api/Node.js",
     "dev:localdb": "node ./Simple_HTTP_JSON_DB_API.js"
   },
