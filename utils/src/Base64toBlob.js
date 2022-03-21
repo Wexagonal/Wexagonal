@@ -11,8 +11,8 @@ import fetch, {
     Response,
 } from 'node-fetch'
 
-if (typeof self=== 'undefined') {
-    self = this || {}
+if (typeof self === 'undefined') {
+    const self = this || {}
 }
 if (!self.Blob) {
     self.Blob = Blob
