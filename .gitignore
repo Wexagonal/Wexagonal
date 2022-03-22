@@ -3,4 +3,5 @@ node_modules
 launcher
 test
 .history
+.vscode
 /launcher.config.json
