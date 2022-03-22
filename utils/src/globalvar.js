@@ -9,6 +9,7 @@ import fetch, {
     Headers,
     Request,
     Response,
+
 } from 'node-fetch'
 
 
@@ -26,6 +27,7 @@ if (typeof self === 'undefined') {
     globalvar.fileFrom = fileFrom
     globalvar.fileFromSync = fileFromSync
     globalvar.FormData = FormData
+    globalvar.Buffer = Buffer
 
 } else {
     globalvar.FormData = self.FormData
@@ -40,7 +42,8 @@ if (typeof self === 'undefined') {
     globalvar.fileFrom = self.fileFrom
     globalvar.fileFromSync = self.fileFromSync
     globalvar.FormData = self.FormData
-
+    
+    self.globalvar = globalvar
 }
 
 export default globalvar

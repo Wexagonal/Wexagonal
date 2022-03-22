@@ -6837,6 +6837,7 @@ if (typeof self === 'undefined') {
     globalvar.fileFrom = external_fetch_namespaceObject.fileFrom
     globalvar.fileFromSync = external_fetch_namespaceObject.fileFromSync
     globalvar.FormData = external_fetch_namespaceObject.FormData
+    globalvar.Buffer = Buffer
 
 } else {
     globalvar.FormData = self.FormData
@@ -6851,7 +6852,8 @@ if (typeof self === 'undefined') {
     globalvar.fileFrom = self.fileFrom
     globalvar.fileFromSync = self.fileFromSync
     globalvar.FormData = self.FormData
-
+    
+    self.globalvar = globalvar
 }
 
 /* harmony default export */ const src_globalvar = (globalvar);
@@ -7121,7 +7123,7 @@ const github = {
             if (!res.ok) {
                 return { ok: 0 }
             }
-            return { ok: 1, sha: res.data.sha }
+            return { ok: 1, data: res.data.sha }
         }
         ,
         download: async (config) => {
@@ -7150,7 +7152,7 @@ const github = {
                     message: config.message ? config.message : 'Wexagonal Upload at ' + new Date().toLocaleString(),
                     content: config.content,
                     branch: config.branch ? config.branch : await github.branch.default(config),
-                    sha: config.sha ? config.sha : await github.file.sha(config),
+                    sha: config.sha ? config.sha : (await github.file.sha(config)).data,
                 })
             })
             if (!res.content) {
@@ -7166,7 +7168,7 @@ const github = {
                 method: 'DELETE',
                 body: JSON.stringify({
                     message: config.message ? config.message : 'Wexagonal Delete at ' + new Date().toLocaleString(),
-                    sha: await github.file.sha(config),
+                    sha: (await github.file.sha(config)).data,
                 })
             })
             return res
@@ -11308,7 +11310,306 @@ const hexo = {
 }
 
 /* harmony default export */ const app_hexo = (hexo);
+;// CONCATENATED MODULE: ./node_modules/js-base64/base64.mjs
+/**
+ *  base64.ts
+ *
+ *  Licensed under the BSD 3-Clause License.
+ *    http://opensource.org/licenses/BSD-3-Clause
+ *
+ *  References:
+ *    http://en.wikipedia.org/wiki/Base64
+ *
+ * @author Dan Kogai (https://github.com/dankogai)
+ */
+const version = '3.7.2';
+/**
+ * @deprecated use lowercase `version`.
+ */
+const VERSION = version;
+const _hasatob = typeof atob === 'function';
+const _hasbtoa = typeof btoa === 'function';
+const _hasBuffer = typeof Buffer === 'function';
+const _TD = typeof TextDecoder === 'function' ? new TextDecoder() : undefined;
+const _TE = typeof TextEncoder === 'function' ? new TextEncoder() : undefined;
+const b64ch = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+const b64chs = Array.prototype.slice.call(b64ch);
+const b64tab = ((a) => {
+    let tab = {};
+    a.forEach((c, i) => tab[c] = i);
+    return tab;
+})(b64chs);
+const b64re = /^(?:[A-Za-z\d+\/]{4})*?(?:[A-Za-z\d+\/]{2}(?:==)?|[A-Za-z\d+\/]{3}=?)?$/;
+const _fromCC = String.fromCharCode.bind(String);
+const _U8Afrom = typeof Uint8Array.from === 'function'
+    ? Uint8Array.from.bind(Uint8Array)
+    : (it, fn = (x) => x) => new Uint8Array(Array.prototype.slice.call(it, 0).map(fn));
+const _mkUriSafe = (src) => src
+    .replace(/=/g, '').replace(/[+\/]/g, (m0) => m0 == '+' ? '-' : '_');
+const _tidyB64 = (s) => s.replace(/[^A-Za-z0-9\+\/]/g, '');
+/**
+ * polyfill version of `btoa`
+ */
+const btoaPolyfill = (bin) => {
+    // console.log('polyfilled');
+    let u32, c0, c1, c2, asc = '';
+    const pad = bin.length % 3;
+    for (let i = 0; i < bin.length;) {
+        if ((c0 = bin.charCodeAt(i++)) > 255 ||
+            (c1 = bin.charCodeAt(i++)) > 255 ||
+            (c2 = bin.charCodeAt(i++)) > 255)
+            throw new TypeError('invalid character found');
+        u32 = (c0 << 16) | (c1 << 8) | c2;
+        asc += b64chs[u32 >> 18 & 63]
+            + b64chs[u32 >> 12 & 63]
+            + b64chs[u32 >> 6 & 63]
+            + b64chs[u32 & 63];
+    }
+    return pad ? asc.slice(0, pad - 3) + "===".substring(pad) : asc;
+};
+/**
+ * does what `window.btoa` of web browsers do.
+ * @param {String} bin binary string
+ * @returns {string} Base64-encoded string
+ */
+const _btoa = _hasbtoa ? (bin) => btoa(bin)
+    : _hasBuffer ? (bin) => Buffer.from(bin, 'binary').toString('base64')
+        : btoaPolyfill;
+const _fromUint8Array = _hasBuffer
+    ? (u8a) => Buffer.from(u8a).toString('base64')
+    : (u8a) => {
+        // cf. https://stackoverflow.com/questions/12710001/how-to-convert-uint8-array-to-base64-encoded-string/12713326#12713326
+        const maxargs = 0x1000;
+        let strs = [];
+        for (let i = 0, l = u8a.length; i < l; i += maxargs) {
+            strs.push(_fromCC.apply(null, u8a.subarray(i, i + maxargs)));
+        }
+        return _btoa(strs.join(''));
+    };
+/**
+ * converts a Uint8Array to a Base64 string.
+ * @param {boolean} [urlsafe] URL-and-filename-safe a la RFC4648 §5
+ * @returns {string} Base64 string
+ */
+const fromUint8Array = (u8a, urlsafe = false) => urlsafe ? _mkUriSafe(_fromUint8Array(u8a)) : _fromUint8Array(u8a);
+// This trick is found broken https://github.com/dankogai/js-base64/issues/130
+// const utob = (src: string) => unescape(encodeURIComponent(src));
+// reverting good old fationed regexp
+const cb_utob = (c) => {
+    if (c.length < 2) {
+        var cc = c.charCodeAt(0);
+        return cc < 0x80 ? c
+            : cc < 0x800 ? (_fromCC(0xc0 | (cc >>> 6))
+                + _fromCC(0x80 | (cc & 0x3f)))
+                : (_fromCC(0xe0 | ((cc >>> 12) & 0x0f))
+                    + _fromCC(0x80 | ((cc >>> 6) & 0x3f))
+                    + _fromCC(0x80 | (cc & 0x3f)));
+    }
+    else {
+        var cc = 0x10000
+            + (c.charCodeAt(0) - 0xD800) * 0x400
+            + (c.charCodeAt(1) - 0xDC00);
+        return (_fromCC(0xf0 | ((cc >>> 18) & 0x07))
+            + _fromCC(0x80 | ((cc >>> 12) & 0x3f))
+            + _fromCC(0x80 | ((cc >>> 6) & 0x3f))
+            + _fromCC(0x80 | (cc & 0x3f)));
+    }
+};
+const re_utob = /[\uD800-\uDBFF][\uDC00-\uDFFFF]|[^\x00-\x7F]/g;
+/**
+ * @deprecated should have been internal use only.
+ * @param {string} src UTF-8 string
+ * @returns {string} UTF-16 string
+ */
+const utob = (u) => u.replace(re_utob, cb_utob);
+//
+const _encode = _hasBuffer
+    ? (s) => Buffer.from(s, 'utf8').toString('base64')
+    : _TE
+        ? (s) => _fromUint8Array(_TE.encode(s))
+        : (s) => _btoa(utob(s));
+/**
+ * converts a UTF-8-encoded string to a Base64 string.
+ * @param {boolean} [urlsafe] if `true` make the result URL-safe
+ * @returns {string} Base64 string
+ */
+const encode = (src, urlsafe = false) => urlsafe
+    ? _mkUriSafe(_encode(src))
+    : _encode(src);
+/**
+ * converts a UTF-8-encoded string to URL-safe Base64 RFC4648 §5.
+ * @returns {string} Base64 string
+ */
+const base64_encodeURI = (src) => encode(src, true);
+// This trick is found broken https://github.com/dankogai/js-base64/issues/130
+// const btou = (src: string) => decodeURIComponent(escape(src));
+// reverting good old fationed regexp
+const re_btou = /[\xC0-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF7][\x80-\xBF]{3}/g;
+const cb_btou = (cccc) => {
+    switch (cccc.length) {
+        case 4:
+            var cp = ((0x07 & cccc.charCodeAt(0)) << 18)
+                | ((0x3f & cccc.charCodeAt(1)) << 12)
+                | ((0x3f & cccc.charCodeAt(2)) << 6)
+                | (0x3f & cccc.charCodeAt(3)), offset = cp - 0x10000;
+            return (_fromCC((offset >>> 10) + 0xD800)
+                + _fromCC((offset & 0x3FF) + 0xDC00));
+        case 3:
+            return _fromCC(((0x0f & cccc.charCodeAt(0)) << 12)
+                | ((0x3f & cccc.charCodeAt(1)) << 6)
+                | (0x3f & cccc.charCodeAt(2)));
+        default:
+            return _fromCC(((0x1f & cccc.charCodeAt(0)) << 6)
+                | (0x3f & cccc.charCodeAt(1)));
+    }
+};
+/**
+ * @deprecated should have been internal use only.
+ * @param {string} src UTF-16 string
+ * @returns {string} UTF-8 string
+ */
+const btou = (b) => b.replace(re_btou, cb_btou);
+/**
+ * polyfill version of `atob`
+ */
+const atobPolyfill = (asc) => {
+    // console.log('polyfilled');
+    asc = asc.replace(/\s+/g, '');
+    if (!b64re.test(asc))
+        throw new TypeError('malformed base64.');
+    asc += '=='.slice(2 - (asc.length & 3));
+    let u24, bin = '', r1, r2;
+    for (let i = 0; i < asc.length;) {
+        u24 = b64tab[asc.charAt(i++)] << 18
+            | b64tab[asc.charAt(i++)] << 12
+            | (r1 = b64tab[asc.charAt(i++)]) << 6
+            | (r2 = b64tab[asc.charAt(i++)]);
+        bin += r1 === 64 ? _fromCC(u24 >> 16 & 255)
+            : r2 === 64 ? _fromCC(u24 >> 16 & 255, u24 >> 8 & 255)
+                : _fromCC(u24 >> 16 & 255, u24 >> 8 & 255, u24 & 255);
+    }
+    return bin;
+};
+/**
+ * does what `window.atob` of web browsers do.
+ * @param {String} asc Base64-encoded string
+ * @returns {string} binary string
+ */
+const _atob = _hasatob ? (asc) => atob(_tidyB64(asc))
+    : _hasBuffer ? (asc) => Buffer.from(asc, 'base64').toString('binary')
+        : atobPolyfill;
+//
+const _toUint8Array = _hasBuffer
+    ? (a) => _U8Afrom(Buffer.from(a, 'base64'))
+    : (a) => _U8Afrom(_atob(a), c => c.charCodeAt(0));
+/**
+ * converts a Base64 string to a Uint8Array.
+ */
+const toUint8Array = (a) => _toUint8Array(_unURI(a));
+//
+const _decode = _hasBuffer
+    ? (a) => Buffer.from(a, 'base64').toString('utf8')
+    : _TD
+        ? (a) => _TD.decode(_toUint8Array(a))
+        : (a) => btou(_atob(a));
+const _unURI = (a) => _tidyB64(a.replace(/[-_]/g, (m0) => m0 == '-' ? '+' : '/'));
+/**
+ * converts a Base64 string to a UTF-8 string.
+ * @param {String} src Base64 string.  Both normal and URL-safe are supported
+ * @returns {string} UTF-8 string
+ */
+const decode = (src) => _decode(_unURI(src));
+/**
+ * check if a value is a valid Base64 string
+ * @param {String} src a value to check
+  */
+const isValid = (src) => {
+    if (typeof src !== 'string')
+        return false;
+    const s = src.replace(/\s+/g, '').replace(/={0,2}$/, '');
+    return !/[^\s0-9a-zA-Z\+/]/.test(s) || !/[^\s0-9a-zA-Z\-_]/.test(s);
+};
+//
+const _noEnum = (v) => {
+    return {
+        value: v, enumerable: false, writable: true, configurable: true
+    };
+};
+/**
+ * extend String.prototype with relevant methods
+ */
+const extendString = function () {
+    const _add = (name, body) => Object.defineProperty(String.prototype, name, _noEnum(body));
+    _add('fromBase64', function () { return decode(this); });
+    _add('toBase64', function (urlsafe) { return encode(this, urlsafe); });
+    _add('toBase64URI', function () { return encode(this, true); });
+    _add('toBase64URL', function () { return encode(this, true); });
+    _add('toUint8Array', function () { return toUint8Array(this); });
+};
+/**
+ * extend Uint8Array.prototype with relevant methods
+ */
+const extendUint8Array = function () {
+    const _add = (name, body) => Object.defineProperty(Uint8Array.prototype, name, _noEnum(body));
+    _add('toBase64', function (urlsafe) { return fromUint8Array(this, urlsafe); });
+    _add('toBase64URI', function () { return fromUint8Array(this, true); });
+    _add('toBase64URL', function () { return fromUint8Array(this, true); });
+};
+/**
+ * extend Builtin prototypes with relevant methods
+ */
+const extendBuiltins = () => {
+    extendString();
+    extendUint8Array();
+};
+const gBase64 = {
+    version: version,
+    VERSION: VERSION,
+    atob: _atob,
+    atobPolyfill: atobPolyfill,
+    btoa: _btoa,
+    btoaPolyfill: btoaPolyfill,
+    fromBase64: decode,
+    toBase64: encode,
+    encode: encode,
+    encodeURI: base64_encodeURI,
+    encodeURL: base64_encodeURI,
+    utob: utob,
+    btou: btou,
+    decode: decode,
+    isValid: isValid,
+    fromUint8Array: fromUint8Array,
+    toUint8Array: toUint8Array,
+    extendString: extendString,
+    extendUint8Array: extendUint8Array,
+    extendBuiltins: extendBuiltins,
+};
+// makecjs:CUT //
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// and finally,
+
+
 ;// CONCATENATED MODULE: ./utils/app/test.js
+
 
 
 
@@ -11389,7 +11690,7 @@ const tester = async (req, db) => {
                         repo: q('repo'),
                         branch: q('branch'),
                         workflow: q('workflow'),
-                        content: Buffer.from(wf).toString('base64')
+                        content: gBase64.encode(wf)
 
                     })
                     if (up_wf.ok) return src_gres({ ok: 1 })
@@ -11401,14 +11702,6 @@ const tester = async (req, db) => {
 }
 /* harmony default export */ const test = (tester);
 ;// CONCATENATED MODULE: ./utils/src/Base64toBlob.js
-
-
-const Base64toBlob_globalvar = {}
-if (typeof self === 'undefined') {
-    Base64toBlob_globalvar.Blob = external_fetch_namespaceObject.Blob
-}else{
-    Base64toBlob_globalvar.Blob = self.Blob
-}
 
 const Base64toBlob = (base64_data) => {
     const fileatob = (str) => {
@@ -11424,15 +11717,15 @@ const Base64toBlob = (base64_data) => {
     for (let i = 0; i < byteString.length; i++) {
         intArray[i] = byteString.charCodeAt(i);
     }
-    return new Base64toBlob_globalvar.Blob([intArray], { type: 'image/png' });
+    return new src_globalvar.Blob([intArray], { type: 'image/png' });
 }
 
 /* harmony default export */ const src_Base64toBlob = (Base64toBlob);
 ;// CONCATENATED MODULE: ./utils/main.js
 
 
-//Generate Response 快速生成响应
 
+//Generate Response 快速生成响应
 
 
 
@@ -11532,49 +11825,107 @@ const handle = async (req, db) => {
                 case 'upload':
                     const formData = new src_globalvar.FormData()
                     formData.append(src_globalvar.imgConfig.fieldName, src_Base64toBlob(req.body), `${new Date().getTime()}.jpg`)
-                    return src_gres({
-                        ok: 1,
-                        data: await (async () => {
-                            const download_res = await (await fetch(src_globalvar.imgConfig.url, {
-                                method: 'POST',
-                                body: formData,
-                                headers: {
-                                    ...src_globalvar.imgConfig.headers
-                                }
-                            })).json()
-                            for (var q in src_globalvar.imgConfig.path) {
-
-                                const path_list = src_globalvar.imgConfig.path[q].split('.')
-
-                                const returnner = (array, path_list) => {
-                                    if (path_list.length == 0) return array
-                                    const path = path_list.shift()
-                                    if (!array[path]) return ''
-                                    return returnner(array[path], path_list)
-                                }
-                                const returnres = returnner(download_res, path_list)
-                                if (returnres == '') continue
-                                let resurl
-                                if (!!src_globalvar.imgConfig.beautify) {
-                                    resurl = src_globalvar.imgConfig.beautify.replace(/\$\{\}/g, returnres)
-                                } else {
-                                    resurl = returnres
-                                }
-
-                                src_globalvar.imgList.data[src_globalvar.imgList.count] = {
-                                    id: src_globalvar.imgList.count,
-                                    url: resurl,
-                                    host: 0,
-                                    time: new Date().getTime()
-
-                                }
-                                src_globalvar.imgList.count += 1
-                                await SQL.write('img', src_globalvar.imgList)
-                                return resurl
-                            }
-                            return 'ERROR,the path is not correct'
-                        })()
-                    })
+                    
+                    switch (src_globalvar.imgConfig.type) {
+                        case 'http':
+                            return src_gres({
+                                ok: 1,
+                                data: await (async () => {
+                                    const download_res = await (await external_fetch_namespaceObject(src_globalvar.imgConfig.url, {
+                                        method: 'POST',
+                                        body: formData,
+                                        headers: {
+                                            ...src_globalvar.imgConfig.headers
+                                        }
+                                    })).json()
+                                    for (var q in src_globalvar.imgConfig.path) {
+                                        const path_list = src_globalvar.imgConfig.path[q].split('.')
+        
+                                        const returnner = (array, path_list) => {
+                                            if (path_list.length == 0) return array
+                                            const path = path_list.shift()
+                                            if (!array[path]) return ''
+                                            return returnner(array[path], path_list)
+                                        }
+                                        const returnres = returnner(download_res, path_list)
+                                        if (returnres == '') continue
+                                        let resurl
+                                        if (!!src_globalvar.imgConfig.beautify) {
+                                            resurl = src_globalvar.imgConfig.beautify.replace(/\$\{\}/g, returnres)
+                                        } else {
+                                            resurl = returnres
+                                        }
+        
+                                        src_globalvar.imgList.data[src_globalvar.imgList.count] = {
+                                            id: src_globalvar.imgList.count,
+                                            url: resurl,
+                                            host: 0,
+                                            time: new Date().getTime()
+        
+                                        }
+                                        src_globalvar.imgList.count += 1
+                                        await SQL.write('img', src_globalvar.imgList)
+                                        return resurl
+                                    }
+                                    return 'ERROR,the path is not correct'
+                                })()
+                            })
+                        case 's3':
+                            return src_gres({
+                                ok:0,
+                                data:await(async()=>{
+                                    //AWS S3 兼容上传文件
+                                    const s3 = new src_globalvar.AWS.S3({
+                                        accessKeyId: src_globalvar.imgConfig.accessKeyId,
+                                        secretAccessKey: src_globalvar.imgConfig.secretAccessKey,
+                                        region: src_globalvar.imgConfig.region
+                                    })
+                                    const params = {
+                                        Bucket: src_globalvar.imgConfig.bucket,
+                                        Key: `${new Date().getTime()}.jpg`,
+                                        Body: src_Base64toBlob(req.body),
+                                        ACL: 'public-read'
+                                    }
+                                    const res = await s3.upload(params).promise()
+                                    console.log(res)
+                                    for (var q in src_globalvar.imgConfig.path) {
+                                        const path_list = src_globalvar.imgConfig.path[q].split('.')
+        
+                                        const returnner = (array, path_list) => {
+                                            if (path_list.length == 0) return array
+                                            const path = path_list.shift()
+                                            if (!array[path]) return ''
+                                            return returnner(array[path], path_list)
+                                        }
+                                        const returnres = returnner(res, path_list)
+                                        if (returnres == '') continue
+                                        let resurl
+                                        if (!!src_globalvar.imgConfig.beautify) {
+                                            resurl = src_globalvar.imgConfig.beautify.replace(/\$\{\}/g, returnres)
+                                        } else {
+                                            resurl = returnres
+                                        }
+        
+                                        src_globalvar.imgList.data[src_globalvar.imgList.count] = {
+                                            id: src_globalvar.imgList.count,
+                                            url: resurl,
+                                            host: 1,
+                                            time: new Date().getTime()
+        
+                                        }
+                                        src_globalvar.imgList.count += 1
+                                        await SQL.write('img', src_globalvar.imgList)
+                                        return resurl
+                                    }
+                                    return 'ERROR,the path is not correct'
+                                })()
+                            })
+                        default:
+                            return src_gres({
+                                ok: 0,
+                                data: 'ERROR,the type is not correct'
+                            })
+                    }
                 case 'config':
                     return src_gres({
                         ok: 1,
@@ -11759,8 +12110,10 @@ const handle = async (req, db) => {
 }
 /* harmony default export */ const main = (handle);
 ;// CONCATENATED MODULE: ./utils/src/db/KV.js
+
 const KV = (config) => {
     return async (namespace) => {
+        const t1 = new Date().getTime();
         return {
             read: async (key) => {
 
@@ -11770,7 +12123,8 @@ const KV = (config) => {
                     await DB.put(namespace, JSON.stringify(db))
                 }
                 db = (() => { try { return JSON.parse(db) } catch (e) { return {} } })()
-
+                
+                src_cons.i(`数据库 读取 耗时: ${new Date().getTime() - t1}ms`)
                 return db[key]
             },
             write: async (key, value) => {
@@ -11782,11 +12136,13 @@ const KV = (config) => {
                 db = (() => { try { return JSON.parse(db) } catch (e) { return {} } })()
                 db[key] = value
                 await DB.put(namespace, JSON.stringify(db))
+                src_cons.i(`数据库 写入 耗时: ${new Date().getTime() - t1}ms`)
                 return true
             },
             set: async (data) => {
                 data = typeof data == 'string' ? JSON.parse(data) : data
                 await DB.put(namespace, JSON.stringify(data))
+                src_cons.i(`数据库 设置 耗时: ${new Date().getTime() - t1}ms`)
                 return true
             },
             delete: async (key) => {
@@ -11798,6 +12154,7 @@ const KV = (config) => {
                 db = (() => { try { return JSON.parse(db) } catch (e) { return '{}' } })()
                 delete db[key]
                 await DB.put(namespace, JSON.stringify(db))
+                src_cons.i(`数据库 删除 耗时: ${new Date().getTime() - t1}ms`)
                 return true
             },
             list: async () => {
@@ -11807,6 +12164,7 @@ const KV = (config) => {
                     await DB.put(namespace, JSON.stringify(db))
                 }
                 db = (() => { try { return JSON.parse(db) } catch (e) { return '{}' } })()
+                src_cons.i(`数据库 列表 耗时: ${new Date().getTime() - t1}ms`)
                 return db
             },
             keys: async () => {
@@ -11816,6 +12174,7 @@ const KV = (config) => {
                     await DB.put(namespace, JSON.stringify(db))
                 }
                 db = (() => { try { return JSON.parse(db) } catch (e) { return '{}' } })()
+                src_cons.i(`数据库 键列表 耗时: ${new Date().getTime() - t1}ms`)
                 return Object.keys(db)
             },
             values: async () => {
@@ -11825,6 +12184,7 @@ const KV = (config) => {
                     await DB.put(namespace, JSON.stringify(db))
                 }
                 db = (() => { try { return JSON.parse(db) } catch (e) { return '{}' } })()
+                src_cons.i(`数据库 值列表 耗时: ${new Date().getTime() - t1}ms`)
                 return Object.values(db)
             }
         }
@@ -11963,8 +12323,10 @@ const generate_response = async (req) => {
             status: res.statusCode || 200,
             headers: res.headers
         })
-    }).catch(e => {
-        src_cons.e(`响应请求: ${PUBLIC_URL} 时间: ${new Date().toLocaleString()} 耗时: ${new Date().getTime() - t1}ms`)
+    })
+    /*
+    .catch(e => {
+        cons.e(`响应请求: ${PUBLIC_URL} 时间: ${new Date().toLocaleString()} 耗时: ${new Date().getTime() - t1}ms 错误: ${e}`)
 
         return new Response(null, {
             status: 500,
@@ -11972,7 +12334,7 @@ const generate_response = async (req) => {
                 'Access-Control-Allow-Origin': '*'
             }
         })
-    })
+    }) */
 
 }
 })();

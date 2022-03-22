@@ -2,7 +2,8 @@ import gres from '../src/gres.js'
 import github from './github.js'
 import hexo from './hexo.js'
 import jsyaml from 'js-yaml'
-
+import globalvar from '../src/globalvar.js'
+import { Base64 } from 'js-base64';
 const tester = async (req, db) => {
     const urlObj = new URL(req.url, 'http://localhost')
     const q = key => {
@@ -78,7 +79,7 @@ const tester = async (req, db) => {
                         repo: q('repo'),
                         branch: q('branch'),
                         workflow: q('workflow'),
-                        content: Buffer.from(wf).toString('base64')
+                        content: Base64.encode(wf)
 
                     })
                     if (up_wf.ok) return gres({ ok: 1 })

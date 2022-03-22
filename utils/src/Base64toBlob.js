@@ -1,23 +1,4 @@
-import fetch, {
-    Blob,
-    blobFrom,
-    blobFromSync,
-    File,
-    fileFrom,
-    fileFromSync,
-    FormData,
-    Headers,
-    Request,
-    Response,
-} from 'node-fetch'
-
-const globalvar = {}
-if (typeof self === 'undefined') {
-    globalvar.Blob = Blob
-}else{
-    globalvar.Blob = self.Blob
-}
-
+import globalvar from "./globalvar.js"
 const Base64toBlob = (base64_data) => {
     const fileatob = (str) => {
         try {

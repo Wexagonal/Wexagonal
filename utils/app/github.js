@@ -180,7 +180,7 @@ const github = {
             if (!res.ok) {
                 return { ok: 0 }
             }
-            return { ok: 1, sha: res.data.sha }
+            return { ok: 1, data: res.data.sha }
         }
         ,
         download: async (config) => {
@@ -209,7 +209,7 @@ const github = {
                     message: config.message ? config.message : 'Wexagonal Upload at ' + new Date().toLocaleString(),
                     content: config.content,
                     branch: config.branch ? config.branch : await github.branch.default(config),
-                    sha: config.sha ? config.sha : await github.file.sha(config),
+                    sha: config.sha ? config.sha : (await github.file.sha(config)).data,
                 })
             })
             if (!res.content) {
@@ -225,7 +225,7 @@ const github = {
                 method: 'DELETE',
                 body: JSON.stringify({
                     message: config.message ? config.message : 'Wexagonal Delete at ' + new Date().toLocaleString(),
-                    sha: await github.file.sha(config),
+                    sha: (await github.file.sha(config)).data,
                 })
             })
             return res

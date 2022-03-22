@@ -6,7 +6,7 @@
   "scripts": {
     "build:cfworker": "npx webpack --config ./build/CloudFlareWorker.config.js",
     "run:vercel": "npx vercel -p 4000",
-    "run:heroku":"node ./api/node.js",
+    "run:heroku": "node ./api/node.js",
     "run:node": "node ./api/node.js",
     "dev:localdb": "node ./dev/Simple_HTTP_JSON_DB_API.js"
   },
@@ -20,7 +20,9 @@
     "webpack-cli": "^4.9.2"
   },
   "dependencies": {
+    "aws-sdk": "^2.1097.0",
     "crypto-js": "^4.1.1",
+    "js-base64": "^3.7.2",
     "js-yaml": "^4.1.0",
     "mongodb": "^4.4.0",
     "node-fetch": "^3.2.3"

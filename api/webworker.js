@@ -45,8 +45,10 @@ const generate_response = async (req) => {
             status: res.statusCode || 200,
             headers: res.headers
         })
-    }).catch(e => {
-        cons.e(`响应请求: ${PUBLIC_URL} 时间: ${new Date().toLocaleString()} 耗时: ${new Date().getTime() - t1}ms`)
+    })
+    /*
+    .catch(e => {
+        cons.e(`响应请求: ${PUBLIC_URL} 时间: ${new Date().toLocaleString()} 耗时: ${new Date().getTime() - t1}ms 错误: ${e}`)
 
         return new Response(null, {
             status: 500,
@@ -54,6 +56,6 @@ const generate_response = async (req) => {
                 'Access-Control-Allow-Origin': '*'
             }
         })
-    })
+    }) */
 
 }
