@@ -6817,6 +6817,44 @@ var __webpack_exports__ = {};
 (() => {
 "use strict";
 
+;// CONCATENATED MODULE: external "fetch"
+const external_fetch_namespaceObject = fetch;
+;// CONCATENATED MODULE: ./utils/src/globalvar.js
+
+
+
+const globalvar = {}
+if (typeof self === 'undefined') {
+    globalvar.FormData = external_fetch_namespaceObject.FormData
+    globalvar.Headers = external_fetch_namespaceObject.Headers
+    globalvar.Request = external_fetch_namespaceObject.Request
+    globalvar.Response = external_fetch_namespaceObject.Response
+    globalvar.fetch = external_fetch_namespaceObject
+    globalvar.Blob = external_fetch_namespaceObject.Blob
+    globalvar.blobFrom = external_fetch_namespaceObject.blobFrom
+    globalvar.blobFromSync = external_fetch_namespaceObject.blobFromSync
+    globalvar.File = external_fetch_namespaceObject.File
+    globalvar.fileFrom = external_fetch_namespaceObject.fileFrom
+    globalvar.fileFromSync = external_fetch_namespaceObject.fileFromSync
+    globalvar.FormData = external_fetch_namespaceObject.FormData
+
+} else {
+    globalvar.FormData = self.FormData
+    globalvar.Headers = self.Headers
+    globalvar.Request = self.Request
+    globalvar.Response = self.Response
+    globalvar.fetch = self.fetch
+    globalvar.Blob = self.Blob
+    globalvar.blobFrom = self.blobFrom
+    globalvar.blobFromSync = self.blobFromSync
+    globalvar.File = self.File
+    globalvar.fileFrom = self.fileFrom
+    globalvar.fileFromSync = self.fileFromSync
+    globalvar.FormData = self.FormData
+
+}
+
+/* harmony default export */ const src_globalvar = (globalvar);
 ;// CONCATENATED MODULE: ./utils/src/gres.js
 const gres = (body, config) => {
     config = config || {}
@@ -6831,29 +6869,15 @@ const gres = (body, config) => {
 
 }
 /* harmony default export */ const src_gres = (gres);
-;// CONCATENATED MODULE: external "fetch"
-const external_fetch_namespaceObject = fetch;
 // EXTERNAL MODULE: ./node_modules/crypto-js/index.js
 var crypto_js = __webpack_require__(354);
 ;// CONCATENATED MODULE: ./utils/src/crypa.js
 
 const encrypt = (message, key) => {
-    var keyHex = crypto_js.enc.Utf8.parse(key);
-    var encrypted = crypto_js.DES.encrypt(message, keyHex, {
-        mode: crypto_js.mode.ECB,
-        padding: crypto_js.pad.Pkcs7
-    });
-    return {
-        key: keyHex,
-        value: encrypted.toString()
-    }
+    return crypto_js.AES.encrypt(message, key).toString()
 }
 const decrypt = (message, key) => {
-    var plaintext = crypto_js.DES.decrypt(message, key, {
-        mode: crypto_js.mode.ECB,
-        padding: crypto_js.pad.Pkcs7
-    })
-    return plaintext.toString(crypto_js.enc.Utf8)
+    return crypto_js.AES.decrypt(message, key).toString(crypto_js.enc.Utf8)
 }
 const MD5 = (data) => {
     return crypto_js.MD5(data).toString()
@@ -6869,6 +6893,34 @@ const crypa = {
 }
 /* harmony default export */ const src_crypa = (crypa);
 
+;// CONCATENATED MODULE: ./utils/app/gauth.js
+
+const gauth = {
+    gsign: (k, u, p) => {
+        const t = new Date().getTime()
+        const uk = `${src_crypa.MD5(u)}:${src_crypa.SHA512(p)}:${t}`
+        const data = {
+            key: k,
+            value: uk,
+            time: t
+        }
+        return src_crypa.encrypt(JSON.stringify(data), k)
+    },
+    gcheck: (k, u, p, d) => {
+        try {
+            const data = JSON.parse(src_crypa.decrypt(d, k))
+            const uk = `${src_crypa.MD5(u)}:${src_crypa.SHA512(p)}:${data.time}`
+            return data.value === uk && data.time > new Date().getTime() - 12 * 60 * 60 * 1000 && data.key === k
+        } catch (e) {
+            return false
+        }
+    }
+}
+
+/* harmony default export */ const app_gauth = (gauth);
+;// CONCATENATED MODULE: ./utils/src/guuid.js
+const guuid = () => { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); }); }
+/* harmony default export */ const src_guuid = (guuid);
 ;// CONCATENATED MODULE: ./utils/src/cons.js
 const cons = {
     s:(msg)=>{
@@ -6942,14 +6994,30 @@ const github = {
     repo: {
         list: async (config) => {
             config.username = config.username || await github.user.name(config)
-            const res = await end('/users/' + config.username + '/repos', config.token, {
-                init: {
-                    type: 'all',
-                    sort: 'updated',
-                    per_page: 100,
-                    page: 1
+            const res = await (async () => {
+                let page = 1
+                let endres;
+                const nres = []
+                while (1) {
+                    endres = await end('/user/repos', config.token, {
+                        init: {
+                            type: 'all',
+                            sort: 'updated',
+                            per_page: 100,
+                            page: page
+                        }
+                    })
+                    for (let i = 0; i < endres.length; i++) {
+                        if (!!config.org || (endres[i].owner.login === config.username && !config.org)) {
+                            nres.push(endres[i])
+                        }
+                    }
+                    if (endres.length < 100) {
+                        return nres
+                    }
+                    page++
                 }
-            })
+            })()
             if (!res) {
                 return { ok: 0 }
             }
@@ -11183,8 +11251,8 @@ const hexo = {
             res = await app_github.file.download(config)
             hres.theme = js_yaml.load(res).theme
             for (var i in list_cache.data) {
-                if (list_cache.data[i].name == `_config_${config.theme}.yml` && list_cache.data[i].type == 'file') {
-                    hres.config.theme = `_config_${config.theme}.yml`
+                if (list_cache.data[i].name == `_config.${config.theme}.yml` && list_cache.data[i].type == 'file') {
+                    hres.config.theme = `_config.${config.theme}.yml`
                     break
                 }
             }
@@ -11264,7 +11332,7 @@ const tester = async (req, db) => {
                         await app_github.repo.list({
                             token: q('token'),
                             username: q('username'),
-                            org: q('org')
+                            org: Number(q('org'))
                         })
                     )
                 case 'list_branches':
@@ -11335,12 +11403,13 @@ const tester = async (req, db) => {
 ;// CONCATENATED MODULE: ./utils/src/Base64toBlob.js
 
 
-if (!self) {
-    self = undefined || global || {}
+const Base64toBlob_globalvar = {}
+if (typeof self === 'undefined') {
+    Base64toBlob_globalvar.Blob = external_fetch_namespaceObject.Blob
+}else{
+    Base64toBlob_globalvar.Blob = self.Blob
 }
-if (!self.Blob) {
-    self.Blob = external_fetch_namespaceObject.Blob
-}
+
 const Base64toBlob = (base64_data) => {
     const fileatob = (str) => {
         try {
@@ -11355,21 +11424,19 @@ const Base64toBlob = (base64_data) => {
     for (let i = 0; i < byteString.length; i++) {
         intArray[i] = byteString.charCodeAt(i);
     }
-    return new self.Blob([intArray], { type: 'image/png' });
+    return new Base64toBlob_globalvar.Blob([intArray], { type: 'image/png' });
 }
 
 /* harmony default export */ const src_Base64toBlob = (Base64toBlob);
 ;// CONCATENATED MODULE: ./utils/main.js
+
+
 //Generate Response 快速生成响应
 
 
 
-if (!self) {
-    self = undefined || global || {}
-}
-if (!self.FormData) {
-    self.FormData = external_fetch_namespaceObject.FormData
-}
+
+
 
 
 
@@ -11378,7 +11445,6 @@ if (!self.FormData) {
 
 
 const handle = async (req, db) => {
-    const global = {}
     const urlObj = new URL(req.url, 'http://localhost')
     const q = key => {
         return urlObj.searchParams.get(key) || null
@@ -11392,14 +11458,14 @@ const handle = async (req, db) => {
     }
     const CONFIG = await (await db)('CONFIG')
     const SQL = await (await db)('SQL')
+    src_globalvar.install = await CONFIG.read('install')
 
-
-    if (!await CONFIG.read('install')) {
+    if (!src_globalvar.install) {
         if (q('type') == 'test') return test(req, db)
         if (q('type') == 'upload') {
-            global.data = JSON.parse(q('data'))
-            for (var i in global.data) {
-                await CONFIG.write(i, global.data[i])
+            src_globalvar.data = JSON.parse(q('data'))
+            for (var i in src_globalvar.data) {
+                await CONFIG.write(i, src_globalvar.data[i])
             }
             await CONFIG.write('install', true)
             return src_gres({
@@ -11413,34 +11479,49 @@ const handle = async (req, db) => {
             install: 0
         })
     }
+    src_globalvar.basicConfig = await CONFIG.read('basic')
+    if (typeof src_globalvar.basicConfig === 'undefined') {
+        //意外退出
+        return src_gres({ ok: 0, data: "绝对的异常错误,无法找到基础Hexo设置" })
 
-    global.gtoken = src_crypa.MD5((await CONFIG.read('basic'))['username']) + src_crypa.SHA512((await CONFIG.read('basic'))['password'])
-    global.admin = src_crypa.MD5(q('username')) + src_crypa.SHA512(q('password')) === global.gtoken || q('token') === global.gtoken ? 1 : 0
-    let hexoConfig;
-    let imgConfig;
-    let imgList
+    } else if (typeof src_globalvar.basicConfig.key === 'undefined') {
+        src_globalvar.basicConfig.key = src_guuid()
+        await CONFIG.write('basic', src_globalvar.basicConfig)
+    }
+
+    src_globalvar.sign = app_gauth.gsign(
+        src_globalvar.basicConfig.key,
+        q('user'),
+        q('pass')
+    )
+    src_globalvar.admin = app_gauth.gcheck(
+        src_globalvar.basicConfig.key,
+        src_globalvar.basicConfig.user,
+        src_globalvar.basicConfig.pass,
+        q('token')
+    )
 
     switch (q('type')) {
         case 'file':
-            if (!global.admin) return src_gres({ ok: 0, admin: 0 })
-            hexoConfig = await CONFIG.read('hexo')
+            if (!src_globalvar.admin) return src_gres({ ok: 0, admin: 0 })
+            src_globalvar.hexoConfig = await CONFIG.read('hexo')
             switch (q('action')) {
                 case 'list':
                     return src_gres({
                         ok: 1,
                         data: (await app_github.file.list({
-                            token: hexoConfig.token,
-                            repo: hexoConfig['repo'],
+                            token: src_globalvar.hexoConfig.token,
+                            repo: src_globalvar.hexoConfig.repo,
                             path: q('path')
                         }))['data']
                     })
             }
         case 'img':
-            if (!global.admin) return src_gres({ ok: 0, admin: 0 })
-            imgConfig = await CONFIG.read('img')
-            if (!imgConfig || imgConfig.length == 0) return src_gres({ ok: 0, img: 0 })
-            imgConfig = imgConfig[0]
-            imgList = await SQL.read('img') || {
+            if (!src_globalvar.admin) return src_gres({ ok: 0, admin: 0 })
+            src_globalvar.imgConfig = await CONFIG.read('img')
+            if (!src_globalvar.imgConfig || src_globalvar.imgConfig.length == 0) return src_gres({ ok: 0, img: 0 })
+            src_globalvar.imgConfig = src_globalvar.imgConfig[0]
+            src_globalvar.imgList = await SQL.read('img') || {
                 count: 0,
                 data: {}
 
@@ -11449,21 +11530,21 @@ const handle = async (req, db) => {
 
             switch (q('action')) {
                 case 'upload':
-                    const formData = new self.FormData()
-                    formData.append(imgConfig.fieldName, src_Base64toBlob(req.body), `${new Date().getTime()}.jpg`)
+                    const formData = new src_globalvar.FormData()
+                    formData.append(src_globalvar.imgConfig.fieldName, src_Base64toBlob(req.body), `${new Date().getTime()}.jpg`)
                     return src_gres({
                         ok: 1,
                         data: await (async () => {
-                            const download_res = await (await external_fetch_namespaceObject(imgConfig.url, {
+                            const download_res = await (await fetch(src_globalvar.imgConfig.url, {
                                 method: 'POST',
                                 body: formData,
                                 headers: {
-                                    ...imgConfig.headers
+                                    ...src_globalvar.imgConfig.headers
                                 }
                             })).json()
-                            for (var q in imgConfig.path) {
+                            for (var q in src_globalvar.imgConfig.path) {
 
-                                const path_list = imgConfig.path[q].split('.')
+                                const path_list = src_globalvar.imgConfig.path[q].split('.')
 
                                 const returnner = (array, path_list) => {
                                     if (path_list.length == 0) return array
@@ -11474,21 +11555,21 @@ const handle = async (req, db) => {
                                 const returnres = returnner(download_res, path_list)
                                 if (returnres == '') continue
                                 let resurl
-                                if (!!imgConfig.beautify) {
-                                    resurl = imgConfig.beautify.replace(/\$\{\}/g, returnres)
+                                if (!!src_globalvar.imgConfig.beautify) {
+                                    resurl = src_globalvar.imgConfig.beautify.replace(/\$\{\}/g, returnres)
                                 } else {
                                     resurl = returnres
                                 }
 
-                                imgList.data[imgList.count] = {
-                                    id: imgList.count,
+                                src_globalvar.imgList.data[src_globalvar.imgList.count] = {
+                                    id: src_globalvar.imgList.count,
                                     url: resurl,
                                     host: 0,
                                     time: new Date().getTime()
 
                                 }
-                                imgList.count += 1
-                                await SQL.write('img', imgList)
+                                src_globalvar.imgList.count += 1
+                                await SQL.write('img', src_globalvar.imgList)
                                 return resurl
                             }
                             return 'ERROR,the path is not correct'
@@ -11497,22 +11578,22 @@ const handle = async (req, db) => {
                 case 'config':
                     return src_gres({
                         ok: 1,
-                        data: imgConfig
+                        data: src_globalvar.imgConfig
                     })
                 case 'list':
 
                     return src_gres({
                         ok: 1,
-                        data: imgList
+                        data: src_globalvar.imgList
                     })
                 case 'delete':
                     //url
-                    for (var i in imgList.data) {
-                        if (imgList.data[i].url == q('url')) {
-                            delete imgList.data[i]
+                    for (var i in src_globalvar.imgList.data) {
+                        if (src_globalvar.imgList.data[i].url == q('url')) {
+                            delete src_globalvar.imgList.data[i]
                         }
                     }
-                    await SQL.write('img', imgList)
+                    await SQL.write('img', src_globalvar.imgList)
                     return src_gres({
                         ok: 1
                     })
@@ -11520,42 +11601,42 @@ const handle = async (req, db) => {
 
 
         case 'hexo':
-            if (!global.admin) return src_gres({ ok: 0, admin: 0 })
-            hexoConfig = await CONFIG.read('hexo')
+            if (!src_globalvar.admin) return src_gres({ ok: 0, admin: 0 })
+            src_globalvar.hexoConfig = await CONFIG.read('hexo')
             switch (q('action')) {
                 case "config":
                     return src_gres({
                         ok: 1,
-                        data: hexoConfig
+                        data: src_globalvar.hexoConfig
                     })
                 case 'dispatch':
                     return src_gres({
                         ok: 1,
                         data: await app_github.workflow.dispatch({
-                            token: hexoConfig.token,
-                            repo: hexoConfig['repo'],
-                            name: hexoConfig["workflow"],
-                            branch: hexoConfig['branch']
+                            token: src_globalvar.hexoConfig.token,
+                            repo: src_globalvar.hexoConfig.repo,
+                            name: src_globalvar.hexoConfig.workflow,
+                            branch: src_globalvar.hexoConfig.branch
                         })
                     })
                 case 'cancel':
                     return src_gres({
                         ok: 1,
                         data: await app_github.run.cancel({
-                            token: hexoConfig.token,
-                            repo: hexoConfig['repo'],
-                            branch: hexoConfig['branch'],
-                            name: hexoConfig['workflow']
+                            token: src_globalvar.hexoConfig.token,
+                            repo: src_globalvar.hexoConfig.repo,
+                            branch: src_globalvar.hexoConfig.branch,
+                            name: src_globalvar.hexoConfig.workflow
                         })
                     })
                 case 'getci':
                     return src_gres({
                         ok: 1,
                         data: (await app_hexo.app.check_run({
-                            token: hexoConfig.token,
-                            repo: hexoConfig['repo'],
-                            branch: hexoConfig['branch'],
-                            name: hexoConfig['workflow']
+                            token: src_globalvar.hexoConfig.token,
+                            repo: src_globalvar.hexoConfig.repo,
+                            branch: src_globalvar.hexoConfig.branch,
+                            name: src_globalvar.hexoConfig.workflow
                         }))
                     })
 
@@ -11563,9 +11644,9 @@ const handle = async (req, db) => {
                     return src_gres({
                         ok: 1,
                         data: await app_hexo.app.count({
-                            token: hexoConfig.token,
-                            repo: hexoConfig.repo,
-                            branch: hexoConfig.branch,
+                            token: src_globalvar.hexoConfig.token,
+                            repo: src_globalvar.hexoConfig.repo,
+                            branch: src_globalvar.hexoConfig.branch,
                             path: q('gettype') === "post" ? "/source/_posts/" : "/source/_drafts/"
                         })
                     })
@@ -11573,9 +11654,9 @@ const handle = async (req, db) => {
                     return src_gres({
                         ok: 1,
                         data: await app_hexo.app.list({
-                            token: hexoConfig.token,
-                            repo: hexoConfig.repo,
-                            branch: hexoConfig.branch,
+                            token: src_globalvar.hexoConfig.token,
+                            repo: src_globalvar.hexoConfig.repo,
+                            branch: src_globalvar.hexoConfig.branch,
                             path: q('gettype') === "post" ? "/source/_posts/" : "/source/_drafts/"
                         })
                     })
@@ -11583,9 +11664,9 @@ const handle = async (req, db) => {
                     return src_gres({
                         ok: 1,
                         data: await app_hexo.app.download({
-                            token: hexoConfig.token,
-                            repo: hexoConfig.repo,
-                            branch: hexoConfig.branch,
+                            token: src_globalvar.hexoConfig.token,
+                            repo: src_globalvar.hexoConfig.repo,
+                            branch: src_globalvar.hexoConfig.branch,
                             path: q('path')
                         })
                     })
@@ -11593,9 +11674,9 @@ const handle = async (req, db) => {
                     return src_gres({
                         ok: 1,
                         data: await app_hexo.app.upload({
-                            token: hexoConfig.token,
-                            repo: hexoConfig.repo,
-                            branch: hexoConfig.branch,
+                            token: src_globalvar.hexoConfig.token,
+                            repo: src_globalvar.hexoConfig.repo,
+                            branch: src_globalvar.hexoConfig.branch,
                             path: q('path'),
 
                             content: req.body
@@ -11605,9 +11686,9 @@ const handle = async (req, db) => {
                     return src_gres({
                         ok: 1,
                         data: await app_hexo.app["delete"]({
-                            token: hexoConfig.token,
-                            repo: hexoConfig.repo,
-                            branch: hexoConfig.branch,
+                            token: src_globalvar.hexoConfig.token,
+                            repo: src_globalvar.hexoConfig.repo,
+                            branch: src_globalvar.hexoConfig.branch,
                             path: q('path')
                         })
                     })
@@ -11615,9 +11696,9 @@ const handle = async (req, db) => {
                     return src_gres({
                         ok: 1,
                         data: await app_github.file.move({
-                            token: hexoConfig.token,
-                            repo: hexoConfig.repo,
-                            branch: hexoConfig.branch,
+                            token: src_globalvar.hexoConfig.token,
+                            repo: src_globalvar.hexoConfig.repo,
+                            branch: src_globalvar.hexoConfig.branch,
                             path: q('path'),
                             newpath: q('newpath')
                         })
@@ -11631,13 +11712,17 @@ const handle = async (req, db) => {
             })
 
         case 'sign':
-            if (!global.admin) return src_gres({ ok: 0 })
             return src_gres({
-                ok: 1,
-                data: src_crypa.MD5(q('username')) + src_crypa.SHA512(q('password'))
+                ok: app_gauth.gcheck(
+                    src_globalvar.basicConfig.key,
+                    src_globalvar.basicConfig.user,
+                    src_globalvar.basicConfig.pass,
+                    src_globalvar.sign
+                ),
+                data: src_globalvar.sign
             })
         case 'config':
-            if (!global.admin) return src_gres({ ok: 0 })
+            if (!src_globalvar.admin) return src_gres({ ok: 0 })
 
             const ALL_CONFIG = await CONFIG.list()
             switch (q('action')) {
@@ -11666,8 +11751,8 @@ const handle = async (req, db) => {
             return src_gres({
                 ok: 1,
                 db: 1,
-                install: await CONFIG.read('install') ? 1 : 0,
-                admin: global.admin,
+                install: src_globalvar.install,
+                admin: src_globalvar.admin,
                 version: '0.0.1'
             })
     }
@@ -11830,10 +11915,12 @@ const getEnv = (key) => {
 
 }
 /* harmony default export */ const getenv = (getEnv);
-;// CONCATENATED MODULE: ./api/CloudFlareWorker.js
+;// CONCATENATED MODULE: ./api/webworker.js
 
 
 //Import DB
+
+
 
 
 
@@ -11843,14 +11930,20 @@ addEventListener('fetch', event => {
     event.respondWith(generate_response(event.request))
 })
 
+src_cons.i('以WebWorker形式启动Wexagonal')
 const generate_response = async (req) => {
+    const t1 = new Date().getTime()
+    const PUBLIC_URL = new URL(req.url, 'http://localhost:4000')
+    PUBLIC_URL.searchParams.set('token', 'HIDE_TOKEN')
     const request = {
         body: await req.text(),
         method: req.method,
         url: req.url,
         headers: req.headers
     }
-    const res = await main(request, (() => {
+
+    src_cons.i(`捕获请求: ${PUBLIC_URL} 时间: ${new Date().toLocaleString()}`)
+    return main(request, (() => {
 
         const config = (() => { try { return JSON.parse(getenv('DB_CONFIG')); } catch (e) { return null } })()
         if (!config) return null
@@ -11863,11 +11956,24 @@ const generate_response = async (req) => {
                 return null
         }
 
-    })())
-    return new Response(res.body, {
-        status: res.statusCode || 200,
-        headers: res.headers
+    })()).then(res => {
+        src_cons.s(`响应请求: ${PUBLIC_URL} 时间: ${new Date().toLocaleString()} 耗时: ${new Date().getTime() - t1}ms`)
+
+        return new Response(res.body, {
+            status: res.statusCode || 200,
+            headers: res.headers
+        })
+    }).catch(e => {
+        src_cons.e(`响应请求: ${PUBLIC_URL} 时间: ${new Date().toLocaleString()} 耗时: ${new Date().getTime() - t1}ms`)
+
+        return new Response(null, {
+            status: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*'
+            }
+        })
     })
+
 }
 })();
 

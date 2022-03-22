@@ -1,25 +1,11 @@
+import globalvar from './src/globalvar.js'
+
 //Generate Response 快速生成响应
 import gres from './src/gres.js'
-import fetch, {
-    Blob,
-    blobFrom,
-    blobFromSync,
-    File,
-    fileFrom,
-    fileFromSync,
-    FormData,
-    Headers,
-    Request,
-    Response,
-} from 'node-fetch'
 
+import gauth from './app/gauth.js'
 
-const globalvar = {}
-if (typeof self === 'undefined') {
-    globalvar.FormData = FormData
-}else{
-    globalvar.FormData = self.FormData
-}
+import guuid from './src/guuid.js'
 import crypa from './src/crypa.js'
 import hexo from './app/hexo.js'
 import github from './app/github.js'
@@ -28,7 +14,6 @@ import tester from './app/test.js'
 import Base64toBlob from './src/Base64toBlob.js'
 
 const handle = async (req, db) => {
-    const global = {}
     const urlObj = new URL(req.url, 'http://localhost')
     const q = key => {
         return urlObj.searchParams.get(key) || null
@@ -42,14 +27,14 @@ const handle = async (req, db) => {
     }
     const CONFIG = await (await db)('CONFIG')
     const SQL = await (await db)('SQL')
+    globalvar.install = await CONFIG.read('install')
 
-
-    if (!await CONFIG.read('install')) {
+    if (!globalvar.install) {
         if (q('type') == 'test') return tester(req, db)
         if (q('type') == 'upload') {
-            global.data = JSON.parse(q('data'))
-            for (var i in global.data) {
-                await CONFIG.write(i, global.data[i])
+            globalvar.data = JSON.parse(q('data'))
+            for (var i in globalvar.data) {
+                await CONFIG.write(i, globalvar.data[i])
             }
             await CONFIG.write('install', true)
             return gres({
@@ -63,34 +48,49 @@ const handle = async (req, db) => {
             install: 0
         })
     }
+    globalvar.basicConfig = await CONFIG.read('basic')
+    if (typeof globalvar.basicConfig === 'undefined') {
+        //意外退出
+        return gres({ ok: 0, data: "绝对的异常错误,无法找到基础Hexo设置" })
 
-    global.gtoken = crypa.MD5((await CONFIG.read('basic'))['username']) + crypa.SHA512((await CONFIG.read('basic'))['password'])
-    global.admin = crypa.MD5(q('username')) + crypa.SHA512(q('password')) === global.gtoken || q('token') === global.gtoken ? 1 : 0
-    let hexoConfig;
-    let imgConfig;
-    let imgList
+    } else if (typeof globalvar.basicConfig.key === 'undefined') {
+        globalvar.basicConfig.key = guuid()
+        await CONFIG.write('basic', globalvar.basicConfig)
+    }
+
+    globalvar.sign = gauth.gsign(
+        globalvar.basicConfig.key,
+        q('user'),
+        q('pass')
+    )
+    globalvar.admin = gauth.gcheck(
+        globalvar.basicConfig.key,
+        globalvar.basicConfig.user,
+        globalvar.basicConfig.pass,
+        q('token')
+    )
 
     switch (q('type')) {
         case 'file':
-            if (!global.admin) return gres({ ok: 0, admin: 0 })
-            hexoConfig = await CONFIG.read('hexo')
+            if (!globalvar.admin) return gres({ ok: 0, admin: 0 })
+            globalvar.hexoConfig = await CONFIG.read('hexo')
             switch (q('action')) {
                 case 'list':
                     return gres({
                         ok: 1,
                         data: (await github.file.list({
-                            token: hexoConfig.token,
-                            repo: hexoConfig['repo'],
+                            token: globalvar.hexoConfig.token,
+                            repo: globalvar.hexoConfig['repo'],
                             path: q('path')
                         }))['data']
                     })
             }
         case 'img':
-            if (!global.admin) return gres({ ok: 0, admin: 0 })
-            imgConfig = await CONFIG.read('img')
-            if (!imgConfig || imgConfig.length == 0) return gres({ ok: 0, img: 0 })
-            imgConfig = imgConfig[0]
-            imgList = await SQL.read('img') || {
+            if (!globalvar.admin) return gres({ ok: 0, admin: 0 })
+            globalvar.imgConfig = await CONFIG.read('img')
+            if (!globalvar.imgConfig || globalvar.imgConfig.length == 0) return gres({ ok: 0, img: 0 })
+            globalvar.imgConfig = globalvar.imgConfig[0]
+            globalvar.imgList = await SQL.read('img') || {
                 count: 0,
                 data: {}
 
@@ -100,20 +100,20 @@ const handle = async (req, db) => {
             switch (q('action')) {
                 case 'upload':
                     const formData = new globalvar.FormData()
-                    formData.append(imgConfig.fieldName, Base64toBlob(req.body), `${new Date().getTime()}.jpg`)
+                    formData.append(globalvar.imgConfig.fieldName, Base64toBlob(req.body), `${new Date().getTime()}.jpg`)
                     return gres({
                         ok: 1,
                         data: await (async () => {
-                            const download_res = await (await fetch(imgConfig.url, {
+                            const download_res = await (await fetch(globalvar.imgConfig.url, {
                                 method: 'POST',
                                 body: formData,
                                 headers: {
-                                    ...imgConfig.headers
+                                    ...globalvar.imgConfig.headers
                                 }
                             })).json()
-                            for (var q in imgConfig.path) {
+                            for (var q in globalvar.imgConfig.path) {
 
-                                const path_list = imgConfig.path[q].split('.')
+                                const path_list = globalvar.imgConfig.path[q].split('.')
 
                                 const returnner = (array, path_list) => {
                                     if (path_list.length == 0) return array
@@ -124,21 +124,21 @@ const handle = async (req, db) => {
                                 const returnres = returnner(download_res, path_list)
                                 if (returnres == '') continue
                                 let resurl
-                                if (!!imgConfig.beautify) {
-                                    resurl = imgConfig.beautify.replace(/\$\{\}/g, returnres)
+                                if (!!globalvar.imgConfig.beautify) {
+                                    resurl = globalvar.imgConfig.beautify.replace(/\$\{\}/g, returnres)
                                 } else {
                                     resurl = returnres
                                 }
 
-                                imgList.data[imgList.count] = {
-                                    id: imgList.count,
+                                globalvar.imgList.data[globalvar.imgList.count] = {
+                                    id: globalvar.imgList.count,
                                     url: resurl,
                                     host: 0,
                                     time: new Date().getTime()
 
                                 }
-                                imgList.count += 1
-                                await SQL.write('img', imgList)
+                                globalvar.imgList.count += 1
+                                await SQL.write('img', globalvar.imgList)
                                 return resurl
                             }
                             return 'ERROR,the path is not correct'
@@ -147,22 +147,22 @@ const handle = async (req, db) => {
                 case 'config':
                     return gres({
                         ok: 1,
-                        data: imgConfig
+                        data: globalvar.imgConfig
                     })
                 case 'list':
 
                     return gres({
                         ok: 1,
-                        data: imgList
+                        data: globalvar.imgList
                     })
                 case 'delete':
                     //url
-                    for (var i in imgList.data) {
-                        if (imgList.data[i].url == q('url')) {
-                            delete imgList.data[i]
+                    for (var i in globalvar.imgList.data) {
+                        if (globalvar.imgList.data[i].url == q('url')) {
+                            delete globalvar.imgList.data[i]
                         }
                     }
-                    await SQL.write('img', imgList)
+                    await SQL.write('img', globalvar.imgList)
                     return gres({
                         ok: 1
                     })
@@ -170,42 +170,42 @@ const handle = async (req, db) => {
 
 
         case 'hexo':
-            if (!global.admin) return gres({ ok: 0, admin: 0 })
-            hexoConfig = await CONFIG.read('hexo')
+            if (!globalvar.admin) return gres({ ok: 0, admin: 0 })
+            globalvar.hexoConfig = await CONFIG.read('hexo')
             switch (q('action')) {
                 case "config":
                     return gres({
                         ok: 1,
-                        data: hexoConfig
+                        data: globalvar.hexoConfig
                     })
                 case 'dispatch':
                     return gres({
                         ok: 1,
                         data: await github.workflow.dispatch({
-                            token: hexoConfig.token,
-                            repo: hexoConfig['repo'],
-                            name: hexoConfig["workflow"],
-                            branch: hexoConfig['branch']
+                            token: globalvar.hexoConfig.token,
+                            repo: globalvar.hexoConfig['repo'],
+                            name: globalvar.hexoConfig["workflow"],
+                            branch: globalvar.hexoConfig['branch']
                         })
                     })
                 case 'cancel':
                     return gres({
                         ok: 1,
                         data: await github.run.cancel({
-                            token: hexoConfig.token,
-                            repo: hexoConfig['repo'],
-                            branch: hexoConfig['branch'],
-                            name: hexoConfig['workflow']
+                            token: globalvar.hexoConfig.token,
+                            repo: globalvar.hexoConfig['repo'],
+                            branch: globalvar.hexoConfig['branch'],
+                            name: globalvar.hexoConfig['workflow']
                         })
                     })
                 case 'getci':
                     return gres({
                         ok: 1,
                         data: (await hexo.app.check_run({
-                            token: hexoConfig.token,
-                            repo: hexoConfig['repo'],
-                            branch: hexoConfig['branch'],
-                            name: hexoConfig['workflow']
+                            token: globalvar.hexoConfig.token,
+                            repo: globalvar.hexoConfig['repo'],
+                            branch: globalvar.hexoConfig['branch'],
+                            name: globalvar.hexoConfig['workflow']
                         }))
                     })
 
@@ -213,9 +213,9 @@ const handle = async (req, db) => {
                     return gres({
                         ok: 1,
                         data: await hexo.app.count({
-                            token: hexoConfig.token,
-                            repo: hexoConfig.repo,
-                            branch: hexoConfig.branch,
+                            token: globalvar.hexoConfig.token,
+                            repo: globalvar.hexoConfig.repo,
+                            branch: globalvar.hexoConfig.branch,
                             path: q('gettype') === "post" ? "/source/_posts/" : "/source/_drafts/"
                         })
                     })
@@ -223,9 +223,9 @@ const handle = async (req, db) => {
                     return gres({
                         ok: 1,
                         data: await hexo.app.list({
-                            token: hexoConfig.token,
-                            repo: hexoConfig.repo,
-                            branch: hexoConfig.branch,
+                            token: globalvar.hexoConfig.token,
+                            repo: globalvar.hexoConfig.repo,
+                            branch: globalvar.hexoConfig.branch,
                             path: q('gettype') === "post" ? "/source/_posts/" : "/source/_drafts/"
                         })
                     })
@@ -233,9 +233,9 @@ const handle = async (req, db) => {
                     return gres({
                         ok: 1,
                         data: await hexo.app.download({
-                            token: hexoConfig.token,
-                            repo: hexoConfig.repo,
-                            branch: hexoConfig.branch,
+                            token: globalvar.hexoConfig.token,
+                            repo: globalvar.hexoConfig.repo,
+                            branch: globalvar.hexoConfig.branch,
                             path: q('path')
                         })
                     })
@@ -243,9 +243,9 @@ const handle = async (req, db) => {
                     return gres({
                         ok: 1,
                         data: await hexo.app.upload({
-                            token: hexoConfig.token,
-                            repo: hexoConfig.repo,
-                            branch: hexoConfig.branch,
+                            token: globalvar.hexoConfig.token,
+                            repo: globalvar.hexoConfig.repo,
+                            branch: globalvar.hexoConfig.branch,
                             path: q('path'),
 
                             content: req.body
@@ -255,9 +255,9 @@ const handle = async (req, db) => {
                     return gres({
                         ok: 1,
                         data: await hexo.app.delete({
-                            token: hexoConfig.token,
-                            repo: hexoConfig.repo,
-                            branch: hexoConfig.branch,
+                            token: globalvar.hexoConfig.token,
+                            repo: globalvar.hexoConfig.repo,
+                            branch: globalvar.hexoConfig.branch,
                             path: q('path')
                         })
                     })
@@ -265,9 +265,9 @@ const handle = async (req, db) => {
                     return gres({
                         ok: 1,
                         data: await github.file.move({
-                            token: hexoConfig.token,
-                            repo: hexoConfig.repo,
-                            branch: hexoConfig.branch,
+                            token: globalvar.hexoConfig.token,
+                            repo: globalvar.hexoConfig.repo,
+                            branch: globalvar.hexoConfig.branch,
                             path: q('path'),
                             newpath: q('newpath')
                         })
@@ -281,13 +281,17 @@ const handle = async (req, db) => {
             })
 
         case 'sign':
-            if (!global.admin) return gres({ ok: 0 })
             return gres({
-                ok: 1,
-                data: crypa.MD5(q('username')) + crypa.SHA512(q('password'))
+                ok: gauth.gcheck(
+                    globalvar.basicConfig.key,
+                    globalvar.basicConfig.user,
+                    globalvar.basicConfig.pass,
+                    globalvar.sign
+                ),
+                data: globalvar.sign
             })
         case 'config':
-            if (!global.admin) return gres({ ok: 0 })
+            if (!globalvar.admin) return gres({ ok: 0 })
 
             const ALL_CONFIG = await CONFIG.list()
             switch (q('action')) {
@@ -316,8 +320,8 @@ const handle = async (req, db) => {
             return gres({
                 ok: 1,
                 db: 1,
-                install: await CONFIG.read('install') ? 1 : 0,
-                admin: global.admin,
+                install: globalvar.install,
+                admin: globalvar.admin,
                 version: '0.0.1'
             })
     }

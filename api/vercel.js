@@ -1,8 +1,8 @@
 import handle from '../utils/main.js';
-import cons from './../utils/src/cons.js'
+import cons from '../utils/src/cons.js'
 import getEnv from '../utils/src/getenv.js';
-import MONGODB from './../utils/src/db/MONGODB.js';
-import HTTP from './../utils/src/db/HTTP.js';
+import MONGODB from '../utils/src/db/MONGODB.js';
+import HTTP from '../utils/src/db/HTTP.js';
 
 cons.i('以Vercel形式启动Wexagonal')
 export default (req, res) => {

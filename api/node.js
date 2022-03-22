@@ -1,14 +1,14 @@
 import { readFileSync } from 'fs';
 import http from 'http';
-import handle from './../utils/main.js';
+import handle from '../utils/main.js';
 
 
 //DB import 
-import MONGODB from './../utils/src/db/MONGODB.js';
-import HTTP from './../utils/src/db/HTTP.js';
+import MONGODB from '../utils/src/db/MONGODB.js';
+import HTTP from '../utils/src/db/HTTP.js';
 
-import getEnv from './../utils/src/getenv.js';
-import cons from './../utils/src/cons.js';
+import getEnv from '../utils/src/getenv.js';
+import cons from '../utils/src/cons.js';
 
 
 const NODE_DEFAULT_PORT = getEnv('PORT') || 4000
