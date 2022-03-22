@@ -1,5 +1,4 @@
 import path from "path";
-
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -7,11 +6,15 @@ const __filename = fileURLToPath(import.meta.url);
 // 👇️ "/home/john/Desktop/javascript"
 const __dirname = path.dirname(__filename);
 console.log("directory-name 👉️", __dirname);
-export default {
+
+/**
+ * @type {import('webpack').Configuration}
+ */
+// FIXME:
+const config = {
   entry: "./api/CloudFlareWorker.js",
   externals: {
     "node-fetch": "fetch",
-
   },
   // webpack不压缩混淆
 
@@ -23,3 +26,5 @@ export default {
     filename: "Wexagonal_CloudFlareWorker_Launcher.js",
   },
 };
+
+export default config;
