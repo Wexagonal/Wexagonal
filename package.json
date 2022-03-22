@@ -1,31 +1,38 @@
 {
   "name": "wexagonal",
+  "type": "module",
   "version": "0.0.0",
   "description": "A Powerful and Useful Hexo Manager with Multi Platform and Serverless",
+  "license": "ISC",
+  "author": "",
   "main": "package.json",
   "scripts": {
-    "build:cfworker": "npx webpack --config ./build/CloudFlareWorker.config.js",
-    "dev:vercel": "npx vercel --debug",
-    "run:vercel": "npx vercel -p 4000",
+    "build:cfworker": "webpack --config ./build/CloudFlareWorker.config.js",
+    "dev:vercel": "vercel dev --listen 4000",
+    "dev:localdb": "node ./develop/Simple_HTTP_JSON_DB_API.js",
+    "run:vercel": "vercel --listen 4000",
     "run:node": "node ./api/Node.js",
-    "dev:localdb": "node ./Simple_HTTP_JSON_DB_API.js"
-  },
-  "author": "",
-  "type": "module",
-  "license": "ISC",
-  "devDependencies": {
-    "@vercel/node": "^1.13.0",
-    "pkg": "^5.5.2",
-    "webpack": "^5.69.1",
-    "webpack-cli": "^4.9.2"
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix . .eslintrc.cjs"
   },
   "dependencies": {
+    "consola": "^2.15.3",
     "crypto-js": "^4.1.1",
     "firebase": "^9.6.7",
     "form-data": "^4.0.0",
+    "hash-wasm": "^4.9.0",
     "js-yaml": "^4.1.0",
     "leancloud-storage": "^4.12.2",
     "mongodb": "^4.4.0",
     "node-fetch": "^3.2.3"
+  },
+  "devDependencies": {
+    "@so1ve/eslint-config": "^0.18.11",
+    "@vercel/node": "^1.13.0",
+    "eslint": "^8.11.0",
+    "pkg": "^5.5.2",
+    "vercel": "^24.0.0",
+    "webpack": "^5.69.1",
+    "webpack-cli": "^4.9.2"
   }
 }

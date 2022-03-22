@@ -1,38 +1,27 @@
-import fetch, {
-    Blob,
-    blobFrom,
-    blobFromSync,
-    File,
-    fileFrom,
-    fileFromSync,
-    FormData,
-    Headers,
-    Request,
-    Response,
-} from 'node-fetch'
+import { Blob } from "node-fetch";
 
-const globalvar = {}
-if (typeof self === 'undefined') {
-    globalvar.Blob = Blob
-}else{
-    globalvar.Blob = self.Blob
-}
+const globalvar = {};
+if (typeof self === "undefined")
+  globalvar.Blob = Blob;
+else
+  globalvar.Blob = self.Blob;
 
-const Base64toBlob = (base64_data) => {
-    const fileatob = (str) => {
-        try {
-            return Buffer.from(str, 'base64').toString('binary')
-        } catch (e) {
-            return atob(str)
-        }
+const base64toBlob = (base64_data) => {
+  const fileatob = (str) => {
+    try {
+      return Buffer.from(str, "base64").toString("binary");
     }
-    const byteString = fileatob(base64_data)
-    const arrayBuffer = new ArrayBuffer(byteString.length);
-    const intArray = new Uint8Array(arrayBuffer);
-    for (let i = 0; i < byteString.length; i++) {
-        intArray[i] = byteString.charCodeAt(i);
+    catch (e) {
+      return atob(str);
     }
-    return new globalvar.Blob([intArray], { type: 'image/png' });
-}
+  };
+  const byteString = fileatob(base64_data);
+  const arrayBuffer = new ArrayBuffer(byteString.length);
+  const intArray = new Uint8Array(arrayBuffer);
+  for (let i = 0; i < byteString.length; i++)
+    intArray[i] = byteString.charCodeAt(i);
 
-export default Base64toBlob;
+  return new globalvar.Blob([intArray], { type: "image/png" });
+};
+
+export { base64toBlob };
