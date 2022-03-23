@@ -60,13 +60,13 @@ const handle = async (req, db) => {
 
     globalvar.sign = gauth.gsign(
         globalvar.basicConfig.key,
-        q('user'),
-        q('pass')
+        q('username'),
+        q('password')
     )
     globalvar.admin = gauth.gcheck(
         globalvar.basicConfig.key,
-        globalvar.basicConfig.user,
-        globalvar.basicConfig.pass,
+        globalvar.basicConfig.username,
+        globalvar.basicConfig.password,
         q('token')
     )
 
@@ -299,8 +299,8 @@ const handle = async (req, db) => {
             return gres({
                 ok: gauth.gcheck(
                     globalvar.basicConfig.key,
-                    globalvar.basicConfig.user,
-                    globalvar.basicConfig.pass,
+                    globalvar.basicConfig.username,
+                    globalvar.basicConfig.password,
                     globalvar.sign
                 ),
                 data: globalvar.sign
