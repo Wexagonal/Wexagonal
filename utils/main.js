@@ -114,6 +114,8 @@ const handle = async (req, db) => {
                                             ...globalvar.imgConfig.headers
                                         }
                                     })).json()
+                                    console.log(download_res)
+
                                     for (var q in globalvar.imgConfig.path) {
                                         const path_list = globalvar.imgConfig.path[q].split('.')
         
@@ -148,53 +150,8 @@ const handle = async (req, db) => {
                             })
                         case 's3':
                             return gres({
-                                ok:0,
-                                data:await(async()=>{
-                                    //AWS S3 兼容上传文件
-                                    const s3 = new globalvar.AWS.S3({
-                                        accessKeyId: globalvar.imgConfig.accessKeyId,
-                                        secretAccessKey: globalvar.imgConfig.secretAccessKey,
-                                        region: globalvar.imgConfig.region
-                                    })
-                                    const params = {
-                                        Bucket: globalvar.imgConfig.bucket,
-                                        Key: `${new Date().getTime()}.jpg`,
-                                        Body: Base64toBlob(req.body),
-                                        ACL: 'public-read'
-                                    }
-                                    const res = await s3.upload(params).promise()
-                                    console.log(res)
-                                    for (var q in globalvar.imgConfig.path) {
-                                        const path_list = globalvar.imgConfig.path[q].split('.')
-        
-                                        const returnner = (array, path_list) => {
-                                            if (path_list.length == 0) return array
-                                            const path = path_list.shift()
-                                            if (!array[path]) return ''
-                                            return returnner(array[path], path_list)
-                                        }
-                                        const returnres = returnner(res, path_list)
-                                        if (returnres == '') continue
-                                        let resurl
-                                        if (!!globalvar.imgConfig.beautify) {
-                                            resurl = globalvar.imgConfig.beautify.replace(/\$\{\}/g, returnres)
-                                        } else {
-                                            resurl = returnres
-                                        }
-        
-                                        globalvar.imgList.data[globalvar.imgList.count] = {
-                                            id: globalvar.imgList.count,
-                                            url: resurl,
-                                            host: 1,
-                                            time: new Date().getTime()
-        
-                                        }
-                                        globalvar.imgList.count += 1
-                                        await SQL.write('img', globalvar.imgList)
-                                        return resurl
-                                    }
-                                    return 'ERROR,the path is not correct'
-                                })()
+                                ok: 0,
+                                data: 'ERROR,the type is not correct'
                             })
                         default:
                             return gres({
