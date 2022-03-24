@@ -292,6 +292,7 @@ const github = {
         dispatch: async (config) => {
             const res = await end('/repos/' + config.repo + '/actions/workflows/' + await (async (config) => {
                 const res = await github.workflow.info(config)
+                //console.log(res)
                 if (!res.ok) {
                     return null
                 }
