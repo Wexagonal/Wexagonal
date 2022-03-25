@@ -13,6 +13,10 @@ import github from './app/github.js'
 import tester from './app/test.js'
 import Base64toBlob from './src/Base64toBlob.js'
 
+globalvar.info = {
+    version:"0.0.1-beta-12"
+}
+
 const handle = async (req, db) => {
     const urlObj = new URL(req.url, 'http://localhost')
     const q = key => {
@@ -22,7 +26,8 @@ const handle = async (req, db) => {
         return gres({
             ok: 1,
             db: 0,
-            install: 0
+            install: 0,
+            version: globalvar.info.version
         })
     }
     const CONFIG = await (await db)('CONFIG')
@@ -45,7 +50,8 @@ const handle = async (req, db) => {
         return gres({
             ok: 1,
             db: 1,
-            install: 0
+            install: 0,
+            version: globalvar.info.version
         })
     }
     globalvar.basicConfig = await CONFIG.read('basic')
@@ -101,7 +107,7 @@ const handle = async (req, db) => {
                 case 'upload':
                     const formData = new globalvar.FormData()
                     formData.append(globalvar.imgConfig.fieldName, Base64toBlob(req.body), `${new Date().getTime()}.jpg`)
-                    
+
                     switch (globalvar.imgConfig.type) {
                         case 'http':
                             return gres({
@@ -118,7 +124,7 @@ const handle = async (req, db) => {
 
                                     for (var q in globalvar.imgConfig.path) {
                                         const path_list = globalvar.imgConfig.path[q].split('.')
-        
+
                                         const returnner = (array, path_list) => {
                                             if (path_list.length == 0) return array
                                             const path = path_list.shift()
@@ -133,13 +139,13 @@ const handle = async (req, db) => {
                                         } else {
                                             resurl = returnres
                                         }
-        
+
                                         globalvar.imgList.data[globalvar.imgList.count] = {
                                             id: globalvar.imgList.count,
                                             url: resurl,
                                             host: 0,
                                             time: new Date().getTime()
-        
+
                                         }
                                         globalvar.imgList.count += 1
                                         await SQL.write('img', globalvar.imgList)
@@ -337,7 +343,11 @@ const handle = async (req, db) => {
                 db: 1,
                 install: globalvar.install,
                 admin: globalvar.admin,
-                version: '0.0.1'
+                version: globalvar.info.version,
+                user: {
+                    nickname: globalvar.basicConfig.nickname,
+                    avatar: globalvar.basicConfig.avatar || "https://npm.elemecdn.com/wexagonal_icon"
+                }
             })
     }
 }
