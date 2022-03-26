@@ -31,9 +31,9 @@ const handledb = async (req) => {
         if (query) return query
         return null
     }
-    if(query('token')!==TOKEN) {
+    if (query('token') !== TOKEN) {
         console.log('Unauthenticated!')
-        return gres({ok:0},{status:401})
+        return gres({ ok: 0 }, { status: 401 })
     }
     let DB = SimpleDB[query('namespace')]
     if (!DB) SimpleDB[query('namespace')] = DB = {}
@@ -42,43 +42,43 @@ const handledb = async (req) => {
     switch (query('action')) {
         case 'read':
             return gres({
-                ok:1,
+                ok: 1,
                 data: DB[conf.key]
             })
         case 'write':
             DB[conf['key']] = conf['value']
 
             return gres({
-                ok:1
+                ok: 1
             })
         case 'delete':
             delete DB[conf['key']]
             return gres({
-                ok:1
+                ok: 1
             })
         case 'set':
             DB = conf
             return gres({
-                ok:1
+                ok: 1
             })
         case 'list':
             return gres({
-                ok:1,
+                ok: 1,
                 data: DB
             })
         case 'keys':
             return gres({
-                ok:1,
+                ok: 1,
                 data: Object.keys(DB)
             })
         case 'values':
             return gres({
-                ok:1,
+                ok: 1,
                 data: Object.values(DB)
             })
         default:
             return gres({
-                ok:0,
+                ok: 0,
                 data: 'Unknown action'
             })
 

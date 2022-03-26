@@ -14,7 +14,7 @@ import tester from './app/test.js'
 import Base64toBlob from './src/Base64toBlob.js'
 
 globalvar.info = {
-    version:"0.0.1-beta-12"
+    version: "0.0.1-beta-12"
 }
 
 const handle = async (req, db) => {
@@ -75,7 +75,7 @@ const handle = async (req, db) => {
         globalvar.basicConfig.password,
         q('token')
     )
-
+    globalvar.wexaLog = await SQL.read('wexaLog') || []
     switch (q('type')) {
         case 'file':
             if (!globalvar.admin) return gres({ ok: 0, admin: 0 })
@@ -110,6 +110,7 @@ const handle = async (req, db) => {
 
                     switch (globalvar.imgConfig.type) {
                         case 'http':
+
                             return gres({
                                 ok: 1,
                                 data: await (async () => {
@@ -193,6 +194,7 @@ const handle = async (req, db) => {
         case 'hexo':
             if (!globalvar.admin) return gres({ ok: 0, admin: 0 })
             globalvar.hexoConfig = await CONFIG.read('hexo')
+
             switch (q('action')) {
                 case "config":
                     return gres({
@@ -200,6 +202,12 @@ const handle = async (req, db) => {
                         data: globalvar.hexoConfig
                     })
                 case 'dispatch':
+                    globalvar.wexaLog.push({
+                        time: new Date().getTime(),
+                        type: 'hexo',
+                        action: 'dispatch'
+                    })
+                    await SQL.write('wexaLog', globalvar.wexaLog)
                     return gres({
                         ok: 1,
                         data: await github.workflow.dispatch({
@@ -210,6 +218,12 @@ const handle = async (req, db) => {
                         })
                     })
                 case 'cancel':
+                    globalvar.wexaLog.push({
+                        time: new Date().getTime(),
+                        type: 'hexo',
+                        action: 'cancel'
+                    })
+                    await SQL.write('wexaLog', globalvar.wexaLog)
                     return gres({
                         ok: 1,
                         data: await github.run.cancel({
@@ -251,6 +265,7 @@ const handle = async (req, db) => {
                         })
                     })
                 case 'download':
+
                     return gres({
                         ok: 1,
                         data: await hexo.app.download({
@@ -261,6 +276,15 @@ const handle = async (req, db) => {
                         })
                     })
                 case 'upload':
+
+                    globalvar.wexaLog.push({
+                        time: new Date().getTime(),
+                        type: 'hexo',
+                        data: q('path'),
+                        action: 'upload'
+                    })
+                    await SQL.write('wexaLog', globalvar.wexaLog)
+
                     return gres({
                         ok: 1,
                         data: await hexo.app.upload({
@@ -268,11 +292,17 @@ const handle = async (req, db) => {
                             repo: globalvar.hexoConfig.repo,
                             branch: globalvar.hexoConfig.branch,
                             path: q('path'),
-
                             content: req.body
                         })
                     })
                 case 'delete':
+                    globalvar.wexaLog.push({
+                        time: new Date().getTime(),
+                        type: 'hexo',
+                        action: 'delete',
+                        data: q('path')
+                    })
+                    await SQL.write('wexaLog', globalvar.wexaLog)
                     return gres({
                         ok: 1,
                         data: await hexo.app.delete({
@@ -283,6 +313,13 @@ const handle = async (req, db) => {
                         })
                     })
                 case 'move':
+                    globalvar.wexaLog.push({
+                        time: new Date().getTime(),
+                        type: 'hexo',
+                        action: 'move',
+                        data: `${q('path')} to ${q('newpath')}`
+                    })
+                    await SQL.write('wexaLog', globalvar.wexaLog)
                     return gres({
                         ok: 1,
                         data: await github.file.move({
@@ -300,7 +337,22 @@ const handle = async (req, db) => {
             return gres({
                 ok: 0
             })
+        case 'wexa':
+            switch (q('action')) {
+                case 'log':
+                    return gres({
+                        ok: 1,
+                        data: await (async (days) => {
+                            var log = await SQL.read('wexaLog')
+                            if (days) {
+                                var day = new Date().getTime() - days * 24 * 60 * 60 * 1000
+                                log = log.filter(item => item.time > day)
+                            }
+                            return log
+                        })(q('days') || 5)
+                    })
 
+            }
         case 'sign':
             return gres({
                 ok: gauth.gcheck(

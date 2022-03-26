@@ -108,8 +108,8 @@ const hexo = {
             res = await github.file.download(config)
             hres.theme = jsyaml.load(res).theme
             for (var i in list_cache.data) {
-                if (list_cache.data[i].name == `_config.${config.theme}.yml` && list_cache.data[i].type == 'file') {
-                    hres.config.theme = `_config.${config.theme}.yml`
+                if (list_cache.data[i].name == `_config.${hres.theme}.yml` && list_cache.data[i].type == 'file') {
+                    hres.config.theme = `_config.${hres.theme}.yml`
                     break
                 }
             }
