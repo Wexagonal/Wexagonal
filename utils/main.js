@@ -14,7 +14,7 @@ import tester from './app/test.js'
 import Base64toBlob from './src/Base64toBlob.js'
 
 globalvar.info = {
-    version: "0.0.1-beta-12"
+    version: "0.0.1-beta-14"
 }
 
 const handle = async (req, db) => {
@@ -146,10 +146,16 @@ const handle = async (req, db) => {
                                             url: resurl,
                                             host: 0,
                                             time: new Date().getTime()
-
                                         }
                                         globalvar.imgList.count += 1
                                         await SQL.write('img', globalvar.imgList)
+                                        globalvar.wexaLog.push({
+                                            time: new Date().getTime(),
+                                            type: 'img',
+                                            action: 'upload'
+                                        })
+                                        await SQL.write('wexaLog', globalvar.wexaLog)
+
                                         return resurl
                                     }
                                     return 'ERROR,the path is not correct'
@@ -185,6 +191,14 @@ const handle = async (req, db) => {
                         }
                     }
                     await SQL.write('img', globalvar.imgList)
+                    globalvar.wexaLog.push({
+                        time: new Date().getTime(),
+                        type: 'img',
+                        action: 'delete',
+                        data: q('url')
+                    })
+                    await SQL.write('wexaLog', globalvar.wexaLog)
+
                     return gres({
                         ok: 1
                     })
@@ -342,14 +356,20 @@ const handle = async (req, db) => {
                 case 'log':
                     return gres({
                         ok: 1,
-                        data: await (async (days) => {
+                        data: await (async (start,end,nodata) => {
                             var log = await SQL.read('wexaLog')
-                            if (days) {
-                                var day = new Date().getTime() - days * 24 * 60 * 60 * 1000
-                                log = log.filter(item => item.time > day)
+                            log = log.filter(item => {
+                                return item.time >= start && item.time <= end
+                            })
+                            if (!!Number(nodata)) {
+                                log.forEach(item => {
+                                    delete item.data
+                                })
                             }
                             return log
-                        })(q('days') || 5)
+
+
+                        })(q('start') || (new Date().getTime() - 1000 * 60 * 60 * 24 * 5), q('end') || new Date().getTime(),q('nodata') || 0)
                     })
 
             }
