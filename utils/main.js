@@ -11,10 +11,10 @@ import hexo from './app/hexo.js'
 import github from './app/github.js'
 //Wexagonal安装测试app
 import tester from './app/test.js'
-import Base64toBlob from './src/Base64toBlob.js'
-
+import b64 from './src/b64.js'
+import social from './app/social/index.js'
 globalvar.info = {
-    version: "0.0.1-beta-14"
+    version: "0.0.1-beta-19"
 }
 
 const handle = async (req, db) => {
@@ -106,7 +106,7 @@ const handle = async (req, db) => {
             switch (q('action')) {
                 case 'upload':
                     const formData = new globalvar.FormData()
-                    formData.append(globalvar.imgConfig.fieldName, Base64toBlob(req.body), `${new Date().getTime()}.jpg`)
+                    formData.append(globalvar.imgConfig.fieldName, b64.de_blob(req.body), `${new Date().getTime()}.jpg`)
 
                     switch (globalvar.imgConfig.type) {
                         case 'http':
@@ -121,7 +121,6 @@ const handle = async (req, db) => {
                                             ...globalvar.imgConfig.headers
                                         }
                                     })).json()
-                                    console.log(download_res)
 
                                     for (var q in globalvar.imgConfig.path) {
                                         const path_list = globalvar.imgConfig.path[q].split('.')
@@ -164,7 +163,7 @@ const handle = async (req, db) => {
                         case 's3':
                             return gres({
                                 ok: 0,
-                                data: 'ERROR,the type is not correct'
+                                data: 'ERROR,the s3 is not support'
                             })
                         default:
                             return gres({
@@ -348,15 +347,32 @@ const handle = async (req, db) => {
 
             }
         case 'public':
-            return gres({
-                ok: 0
-            })
+            switch (q('action')) {
+                case 'social':
+                    try {
+                        return gres({
+                            ok: 1,
+                            data: await social(JSON.parse(req.body), db)
+                        })
+                    } catch (e) {
+                        console.log(e)
+                        return gres({
+                            ok: 0,
+                            data: 'Not a valid json'
+                        })
+                    }
+
+                default:
+                    return gres({
+                        ok: 0
+                    })
+            }
         case 'wexa':
             switch (q('action')) {
                 case 'log':
                     return gres({
                         ok: 1,
-                        data: await (async (start,end,nodata) => {
+                        data: await (async (start, end, nodata) => {
                             var log = await SQL.read('wexaLog')
                             log = log.filter(item => {
                                 return item.time >= start && item.time <= end
@@ -369,7 +385,7 @@ const handle = async (req, db) => {
                             return log
 
 
-                        })(q('start') || (new Date().getTime() - 1000 * 60 * 60 * 24 * 5), q('end') || new Date().getTime(),q('nodata') || 0)
+                        })(q('start') || (new Date().getTime() - 1000 * 60 * 60 * 24 * 15), q('end') || new Date().getTime(), q('nodata') || 0)
                     })
 
             }

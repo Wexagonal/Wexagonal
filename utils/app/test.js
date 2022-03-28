@@ -64,10 +64,14 @@ const tester = async (req, db) => {
                         workflow: q('workflow')
                     })
                     wf = jsyaml.load(wf)
+                    if(typeof wf.on === 'undefined' || typeof wf.on === "string") {
+                        wf.on = []
+                    }
                     if (q('onlydispatch')==='true') {
                         console.log('onlydispatch')
                         wf.on = ["workflow_dispatch"]
                     } else {
+                        
                         if (wf.on.indexOf("workflow_dispatch")===-1) {
                             wf.on.push("workflow_dispatch")
                         }
