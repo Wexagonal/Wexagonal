@@ -12,9 +12,10 @@ import github from './app/github.js'
 //Wexagonal安装测试app
 import tester from './app/test.js'
 import b64 from './src/b64.js'
+import cons from './src/cons.js'
 import social from './app/social/index.js'
 globalvar.info = {
-    version: "0.0.1-beta-19"
+    version: "0.0.1-beta-20"
 }
 
 const handle = async (req, db) => {
@@ -346,19 +347,33 @@ const handle = async (req, db) => {
 
 
             }
+        case 'social':
+            if (!globalvar.admin) return gres({ ok: 0, admin: 0 })
+            try {
+                return gres({
+                    ok: 1,
+                    data: await social.private(JSON.parse(req.body), db)
+                })
+            } catch (e) {
+                cons.e(`Social Module Error: ${e}`)
+                return gres({
+                    ok: 0,
+                    data: `Something err: ${e}`
+                })
+            }
         case 'public':
             switch (q('action')) {
                 case 'social':
                     try {
                         return gres({
                             ok: 1,
-                            data: await social(JSON.parse(req.body), db)
+                            data: await social.public(JSON.parse(req.body), db)
                         })
                     } catch (e) {
-                        console.log(e)
+                        cons.e(`Social Public Module Error: ${e}`)
                         return gres({
                             ok: 0,
-                            data: 'Not a valid json'
+                            data: `Something err: ${e}`
                         })
                     }
 
