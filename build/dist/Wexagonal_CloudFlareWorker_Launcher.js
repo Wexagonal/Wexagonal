@@ -12161,48 +12161,12 @@ const RSASign = {
 
 
 
-const Pri = `-----BEGIN PRIVATE KEY-----
-MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC0eTBVQVioox+O
-Ruqx6zqRGh1jOqUKWXNG6N0oqu+Cvflw6H2MEPckl+cipcn52+8ExKAarixMevxW
-OHclcXZXDHHlPB5Q/j3nEZ+bzywAlabDn63+q+K3QDcIBNH/e75k8nOSdaGz0zXp
-cDQhuAa3saAFV6gsVtHki0lKEEFnsS3jvZfzc3IFnJFUAG+Nf1BzFaqwV/1NFGuB
-Y9SGGYmtXGSiVV7Q2MTYX2MY5aytcQgldScAIzkhgsgFbuWd+K+0YLPq/XbOe7Pt
-s4/X2V29ycZUjiV1V9UpXjcv/QdEkZQbxs/bVd90k/Oewa2cQpYd7F/vpRiDMxpy
-rnS9Q8L9AgMBAAECggEANqngcGpXGtkx5SvoyZQ4zJuO3C/2rnBSoN9GoZtI6Z52
-L/NTl7nJye0yxsVVrJcnyhducTZhV5cG2GzI9e/sishLtUXk3t5rTJKDeDOjnde2
-R9mVX6abiKrsIEMpgktua3AefnWf0XJ/iWIBgFcXvcsQ751R5IA1mhZwT/0lemzm
-/e4sZ/McrbupKvhTZmh+NYIBkezoIywOBfqzzdHosyBd9BLH7J3pSReyEnQt3UAH
-pN8HI0PP+hP0MDYaG/bbg476uFXnMNL7w7so6v9NklBoJlA+QOLTRbpELmdJ/qYg
-s13iB0xyWU4y4VNDWLBdw+Y2XT+CetlVeCDaPYqIVwKBgQDrQOYiiDtOheaBQCao
-GhZ+7utZcWfbH9uvYQNs5GocS8vgqFkHSCt9O8qJTtgAz23DwrGQyHr9/dkzsB7P
-OjRkXMSr7diRK0jOHrt012p9YlqkD8qKu6VX8gn+o06Tg7co35o1AVKTNKNIBdO8
-Fs8oHPdOoWpou+WsWV0ZsyCzPwKBgQDEY5Hb4Q9W2Q88emjO7X6eR2NjrqCqQimz
-m6MxDcEdS0QJ8fEYpwE/3GFT1sDMWqu1WL3FOJRzhhaxQ6Jz3/dLHHXScF2M8i46
-YVtwJe0yHMVSK2D/ZkNQTBrGagkgyP7l9raQw6hERss/vpXJsqTCT38lXc9J9piR
-HPT2B6hGwwKBgQDBYlMLlfMypE2MeCCO1QsjAuGCX//gl/qt21DGhalYY1JP9fNh
-Ugk15B2k66QSXnE7l+MBQlwgSDjxDVj2PkFtMvkU3+rDwtIRZh/wd1f5hA1Aih6U
-FpZfif5/TN090+uPdOe9pL2tdnq2rNuV5SYbMlx1Tak8OSEeoUMv6hj6XwKBgAnL
-wanLFx3I4/arUHEJ7aftfaqqOj9j33qjB8fZnMleSL2KQPFu2yQZVQ1+h81ptGju
-TUD6KoV8qcMb0Y2gHVC00be2fSQbrGyjEJGOgr9eKgWIPmVe73qg4TEGdwAYpoZI
-ASFFcS4+rcK3Ofd+nrNGjdwKSt2wnDmYzSs8hItLAoGBAM87ZnJw2HCs/99zgiVF
-l+6LYFmhfvCwCmX4gjVcsxKOt7sbEpUaVFBNNPiTv1CEU3VGEVLMu3faqBiFOWt5
-QKkKVujZlaevctYhkpCAyB4WvgHyIrQopwExhgzP4Ity8YMoqSwQkUqzPxd8coWb
-NdfLuRguMP7scJH3KWiIF67T
------END PRIVATE KEY-----`
-const Pub = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtHkwVUFYqKMfjkbqses6
-kRodYzqlCllzRujdKKrvgr35cOh9jBD3JJfnIqXJ+dvvBMSgGq4sTHr8Vjh3JXF2
-Vwxx5TweUP495xGfm88sAJWmw5+t/qvit0A3CATR/3u+ZPJzknWhs9M16XA0IbgG
-t7GgBVeoLFbR5ItJShBBZ7Et472X83NyBZyRVABvjX9QcxWqsFf9TRRrgWPUhhmJ
-rVxkolVe0NjE2F9jGOWsrXEIJXUnACM5IYLIBW7lnfivtGCz6v12znuz7bOP19ld
-vcnGVI4ldVfVKV43L/0HRJGUG8bP21XfdJPznsGtnEKWHexf76UYgzMacq50vUPC
-/QIDAQAB
------END PUBLIC KEY-----`
 
 
 const gSocial = (config) => {
-    console.log(`fetch endpoint: ${config.endpoint},type ${config.type}`)
-    return external_fetch_namespaceObject(`http://${config.endpoint}/api?type=public&action=social`, {
+    //console.log(`fetch endpoint: ${config.endpoint},type ${config.type}`)
+    //console.log(config.data)
+    return external_fetch_namespaceObject(`https://${config.endpoint}/api?type=public&action=social`, {
         method: 'POST',
         body: JSON.stringify({
             type: config.type,
@@ -12211,58 +12175,176 @@ const gSocial = (config) => {
     })
 }
 
-const social = async (body, db) => {
+const social_public = async (body, db) => {
     const data = body.data
     //console.log(body)
     if (!data || typeof data !== 'object') return 'Data type is not correct'
-    let res;
-    /*const CONFIG = await (await db)('CONFIG')
-    const socialConfig = await CONFIG.read('social')*/
-    const socialConfig = {
-        privkey: Pri,
-        pubkey: Pub,
-        endpoint: 'localhost:3000'
-    }
+    let res, rep
+    const CONFIG = await (await db)('CONFIG')
+    const SQL = await (await db)('SQL')
+    const basicConfig = await CONFIG.read('basic')
+    const socialConfig = basicConfig.social
+    let friendSQL = await SQL.read('friend')
     if (typeof socialConfig !== 'object') return 'Social is not configured'
     switch (body.type) {
+
         case 'FRIEND_REQUEST':
-            if (!data.endpoint || !data.pubkey) return 'Data is not correct'
+            if (!data.endpoint || !data.pub) return 'Data is not correct'
             src_globalvar.verification_key = src_guuid()
             src_globalvar.ckey = src_guuid()
+            if (!friendSQL) friendSQL = {}
+            if (typeof friendSQL[data.endpoint] === 'undefined') {
+                friendSQL[data.endpoint] = {}
+            } else if (friendSQL[data.endpoint].status === 'BLOCKED') {
+                return 'Friend request is blocked'
+            } else {
+                return 'Friend request has been sent'
+            }
             res = await gSocial({
                 type: 'VERRIFY_ENDPOINT',
                 data: {
                     verification_key: src_crypa.encrypt(src_globalvar.verification_key, src_globalvar.ckey),
-                    enpoint: socialConfig.endpoint,
-                    pubkey: socialConfig.pubkey,
-                    ckey: src_RSASign.en(src_globalvar.ckey, data.pubkey)
+                    endpoint: basicConfig.endpoint,
+                    pub: socialConfig.pub,
+                    ckey: src_RSASign.en(src_globalvar.ckey, data.pub)
                 },
                 endpoint: data.endpoint,
-                privkey: socialConfig.privkey,
-                pubkey: socialConfig.pubkey,
+                priv: socialConfig.priv,
+                pub: socialConfig.pub,
                 encrypt: false
 
             }).then(res => res.json())
-            if(res.data.verification_key === src_globalvar.verification_key){
-                console.log({
-                    type:"VERIFY_SUCCESS",
+            if (res.data.verification_key === src_globalvar.verification_key) {
+                friendSQL[data.endpoint] = {
                     ckey: src_globalvar.ckey,
-                    mePubkey: socialConfig.pubkey,
-                    friendPubkey: data.pubkey
-                })
+                    pub: data.pub,
+                    time: {
+                        add: Date.now(),
+                        update: Date.now()
+                    },
+                    status: 'PENDING'
+                }
+                await SQL.write('friend', friendSQL)
+                return {
+                    ckey: src_globalvar.ckey,
+                    pub: data.pub
+                }
+            } else {
+                return {
+                    ckey: null
+                }
             }
-            return res
         case 'VERRIFY_ENDPOINT':
-            if (!data.verification_key || !data.pubkey || !data.ckey) return 'Data is not correct'
-            src_globalvar.ckey = src_RSASign.de(data.ckey, socialConfig.privkey)
+            if (!data.verification_key || !data.pub || !data.ckey) return 'Data is not correct'
+            src_globalvar.ckey = src_RSASign.de(data.ckey, socialConfig.priv)
             return {
-                pubkey: src_crypa.encrypt(socialConfig.pubkey, src_globalvar.ckey),
+                pub: src_crypa.encrypt(socialConfig.pub, src_globalvar.ckey),
                 verification_key: src_crypa.decrypt(data.verification_key, src_globalvar.ckey)
+            }
+        case 'FRIEND_REQUEST_RESPONSE':
+            rep = src_crypa.decrypt(data.data, src_globalvar.ckey)
+            switch (req.response) {
+                case 'ACCEPT':
+                    if (!friendSQL[rep.endpoint]) return 'Friend request has been rejected'
+                    friendSQL[rep.endpoint].status = 'ACCEPT'
+                case 'REJECT':
+                    if (!friendSQL[rep.endpoint]) return 'Friend request has been rejected'
+                    friendSQL[rep.endpoint].status = 'REJECT'
+                case 'BLOCK':
+                    if (!friendSQL[rep.endpoint]) return 'Friend request has been rejected'
+                    friendSQL[rep.endpoint].status = 'BLOCK'
+            }
+            friendSQL[rep.endpoint].time.update = Date.now()
+            await SQL.write('friend', friendSQL)
+            return {
+                ok: true
             }
         default:
             return 'ERROR!'
     }
 }
+
+const social_private = async (body, db) => {
+
+    const data = body.data
+    if (!data || typeof data !== 'object') return 'Data type is not correct'
+    let res;
+    const CONFIG = await (await db)('CONFIG')
+    const SQL = await (await db)('SQL')
+    const basicConfig = await CONFIG.read('basic')
+    const socialConfig = basicConfig.social
+    let friendSQL = await SQL.read('friend')
+    if (typeof socialConfig !== 'object') return 'Social is not configured'
+    switch (body.type) {
+        case 'SEND_FRIEND_REQUEST':
+            if (!data.endpoint) return 'Data is not correct'
+            if (!friendSQL) friendSQL = {}
+            if (typeof friendSQL[data.endpoint] !== 'undefined') {
+                  return 'Friend request has been sent'
+            }
+
+            res = await gSocial({
+                type: 'FRIEND_REQUEST',
+                endpoint: data.endpoint,
+                data: {
+                    endpoint: basicConfig.endpoint,
+                    pub: socialConfig.pub
+                },
+                encrypt: false
+            }).then(res => res.json())
+            if (!!res.data.ckey) {
+                friendSQL[data.endpoint] = {
+                    ckey: res.data.ckey,
+                    pub: res.data.pub,
+                    time: {
+                        add: Date.now(),
+                        update: Date.now()
+                    },
+                    status: 'PENDING'
+                }
+                await SQL.write('friend', friendSQL)
+                return 'Friend request has been sent'
+            }
+
+            return 'ERROR!'
+        case 'LIST_FRIEND':
+            if (!friendSQL) friendSQL = {}
+            await SQL.write('friend', friendSQL)
+            return friendSQL
+        case 'RESPONSE_FRIEND_REQUEST':
+            if (!data.endpoint) return 'Data is not correct'
+            if (!friendSQL) friendSQL = {}
+            if (typeof friendSQL[data.endpoint] === 'undefined') {
+                return 'Friend request is not found'
+            }
+            if (friendSQL[data.endpoint].status === data.response) {
+                return `Friend request is already ${data.response}`
+            }
+            res = await gSocial({
+                type: 'FRIEND_REQUEST_RESPONSE',
+                endpoint: data.endpoint,
+                data: {
+                    response: data.response,
+                    ckey: friendSQL[data.endpoint].ckey
+                },
+                encrypt: true,
+                ckey: friendSQL[data.endpoint].ckey
+            }).then(res => res.json())
+            if (res.ok) {
+                friendSQL[data.endpoint].status = data.response
+                friendSQL[data.endpoint].time.update = Date.now()
+                await SQL.write('friend', friendSQL)
+                return 'Friend request has been responded'
+            }else{
+                return 'ERROR!'
+            }
+    }
+}
+const social = {
+    private: social_private,
+    public: social_public
+}
+
 /* harmony default export */ const app_social = (social);
 ;// CONCATENATED MODULE: ./utils/main.js
 
@@ -12280,8 +12362,9 @@ const social = async (body, db) => {
 
 
 
+
 src_globalvar.info = {
-    version: "0.0.1-beta-19"
+    version: "0.0.1-beta-20"
 }
 
 const handle = async (req, db) => {
@@ -12613,19 +12696,33 @@ const handle = async (req, db) => {
 
 
             }
+        case 'social':
+            if (!src_globalvar.admin) return src_gres({ ok: 0, admin: 0 })
+            try {
+                return src_gres({
+                    ok: 1,
+                    data: await app_social["private"](JSON.parse(req.body), db)
+                })
+            } catch (e) {
+                src_cons.e(`Social Module Error: ${e}`)
+                return src_gres({
+                    ok: 0,
+                    data: `Something err: ${e}`
+                })
+            }
         case 'public':
             switch (q('action')) {
                 case 'social':
                     try {
                         return src_gres({
                             ok: 1,
-                            data: await app_social(JSON.parse(req.body), db)
+                            data: await app_social["public"](JSON.parse(req.body), db)
                         })
                     } catch (e) {
-                        console.log(e)
+                        src_cons.e(`Social Public Module Error: ${e}`)
                         return src_gres({
                             ok: 0,
-                            data: 'Not a valid json'
+                            data: `Something err: ${e}`
                         })
                     }
 

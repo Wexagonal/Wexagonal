@@ -17,6 +17,7 @@
     "@vercel/node": "^1.13.0",
     "pkg": "^5.5.2",
     "webpack": "^5.69.1",
+    "webpack-bundle-analyzer": "^4.5.0",
     "webpack-cli": "^4.9.2"
   },
   "dependencies": {

@@ -76,6 +76,7 @@ const handle = async (req, db) => {
         globalvar.basicConfig.password,
         q('token')
     )
+    console.log(globalvar.admin)
     globalvar.wexaLog = await SQL.read('wexaLog') || []
     switch (q('type')) {
         case 'file':
@@ -441,16 +442,14 @@ const handle = async (req, db) => {
                     })
             }
         default:
+            delete globalvar.basicConfig.social.priv
             return gres({
                 ok: 1,
                 db: 1,
                 install: globalvar.install,
                 admin: globalvar.admin,
                 version: globalvar.info.version,
-                user: {
-                    nickname: globalvar.basicConfig.nickname,
-                    avatar: globalvar.basicConfig.avatar || "https://npm.elemecdn.com/wexagonal_icon"
-                }
+                social: globalvar.basicConfig.social
             })
     }
 }

@@ -1,7 +1,8 @@
 import path from 'path'
 
 import {fileURLToPath} from 'url';
-
+//webpack-bundle-analyzer
+import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 const __filename = fileURLToPath(import.meta.url);
 
 // 👇️ "/home/john/Desktop/javascript"
@@ -18,6 +19,13 @@ export default {
      optimization: {
          minimize: false
      },
+     plugins:[
+            new BundleAnalyzerPlugin({
+                analyzerMode: 'static',
+                openAnalyzer: false,
+                reportFilename: './report.html'
+            })
+     ],
     output: {
         path: path.resolve(__dirname, './dist'),
         filename: 'Wexagonal_CloudFlareWorker_Launcher.js',

@@ -7,20 +7,24 @@ import crypa from '../../src/crypa.js'
 
 const gSocial = (config) => {
     //console.log(`fetch endpoint: ${config.endpoint},type ${config.type}`)
-    //console.log(config.data)
+    console.log(config.data)
     return fetch(`https://${config.endpoint}/api?type=public&action=social`, {
         method: 'POST',
         body: JSON.stringify({
             type: config.type,
-            data: config.encrypt ? crypa.encrypt(JSON.stringify(config.data), config.ckey) : config.data
+            data: config.encrypt ? crypa.encrypt(JSON.stringify(config.data), config.ckey) : config.data,
+            encrypt: config.encrypt,
+            endpoint: config.me_endpoint
         })
     })
 }
 
+
+
+
 const social_public = async (body, db) => {
     const data = body.data
-    //console.log(body)
-    if (!data || typeof data !== 'object') return 'Data type is not correct'
+    
     let res, rep
     const CONFIG = await (await db)('CONFIG')
     const SQL = await (await db)('SQL')
@@ -28,10 +32,19 @@ const social_public = async (body, db) => {
     const socialConfig = basicConfig.social
     let friendSQL = await SQL.read('friend')
     if (typeof socialConfig !== 'object') return 'Social is not configured'
+
+    globalvar.me_endpoint = basicConfig.endpoint
+    globalvar.me_pub = socialConfig.pub
+    globalvar.me_priv = socialConfig.priv
     switch (body.type) {
 
         case 'FRIEND_REQUEST':
             if (!data.endpoint || !data.pub) return 'Data is not correct'
+            globalvar.friend_pub = data.pub
+            if (globalvar.me_endpoint !== data.friend_endpoint) return 'Error With The Friend,The Endpoint Is Not The Same'
+            if (!RSASign.verify(globalvar.me_endpoint, data.sign, globalvar.friend_pub)) {
+                return 'Sign is not correct'
+            }
             globalvar.verification_key = guuid()
             globalvar.ckey = guuid()
             if (!friendSQL) friendSQL = {}
@@ -56,6 +69,7 @@ const social_public = async (body, db) => {
                 encrypt: false
 
             }).then(res => res.json())
+            console.log(res)
             if (res.data.verification_key === globalvar.verification_key) {
                 friendSQL[data.endpoint] = {
                     ckey: globalvar.ckey,
@@ -64,12 +78,19 @@ const social_public = async (body, db) => {
                         add: Date.now(),
                         update: Date.now()
                     },
-                    status: 'PENDING'
+                    status: 'NEED_CONFIRM'
+                }
+                res = await fetch(`https://${data.endpoint}/api?type=info`).then(res => res.json())
+                friendSQL[data.endpoint].social = res.social
+                if (friendSQL[data.endpoint].social.pub === friendSQL[data.endpoint].pub) {
+                    delete friendSQL[data.endpoint].social.pub
+                } else {
+                    return 'Error With The Friend,The RSA Public Key Is Not The Same'
                 }
                 await SQL.write('friend', friendSQL)
                 return {
                     ckey: globalvar.ckey,
-                    pub: data.pub
+                    pub: socialConfig.pub
                 }
             } else {
                 return {
@@ -83,24 +104,24 @@ const social_public = async (body, db) => {
                 pub: crypa.encrypt(socialConfig.pub, globalvar.ckey),
                 verification_key: crypa.decrypt(data.verification_key, globalvar.ckey)
             }
-        case 'FRIEND_REQUEST_RESPONSE':
-            rep = crypa.decrypt(data.data, globalvar.ckey)
-            switch (req.response) {
-                case 'ACCEPT':
-                    if (!friendSQL[rep.endpoint]) return 'Friend request has been rejected'
-                    friendSQL[rep.endpoint].status = 'ACCEPT'
-                case 'REJECT':
-                    if (!friendSQL[rep.endpoint]) return 'Friend request has been rejected'
-                    friendSQL[rep.endpoint].status = 'REJECT'
-                case 'BLOCK':
-                    if (!friendSQL[rep.endpoint]) return 'Friend request has been rejected'
-                    friendSQL[rep.endpoint].status = 'BLOCK'
-            }
-            friendSQL[rep.endpoint].time.update = Date.now()
+        case 'FRIEND_REQUEST_ACCEPT':
+            globalvar.friend_endpoint = body.endpoint
+            globalvar.ckey = friendSQL[globalvar.friend_endpoint].ckey
+            globalvar.res = JSON.parse(crypa.decrypt(data, globalvar.ckey))
+            if (globalvar.res.friend_endpoint !== globalvar.me_endpoint || globalvar.res.endpoint !== globalvar.friend_endpoint) return 'Error With The Friend,The Endpoint Is Not The Same'
+            friendSQL[globalvar.friend_endpoint].status = 'ACCEPT'
+            friendSQL[globalvar.friend_endpoint].time.update = Date.now()
             await SQL.write('friend', friendSQL)
-            return {
-                ok: true
-            }
+            return 'Friend request has been accepted'
+        case 'FRIEND_REQUEST_REJECT':
+            globalvar.friend_endpoint = body.endpoint
+            globalvar.ckey = friendSQL[globalvar.friend_endpoint].ckey
+            globalvar.res = JSON.parse(crypa.decrypt(data, globalvar.ckey))
+            if (globalvar.res.friend_endpoint !== globalvar.me_endpoint || globalvar.res.endpoint !== globalvar.friend_endpoint) return 'Error With The Friend,The Endpoint Is Not The Same'
+            friendSQL[globalvar.friend_endpoint].status = 'REJECT'
+            friendSQL[globalvar.friend_endpoint].time.update = Date.now()
+            await SQL.write('friend', friendSQL)
+            return 'Friend request has been rejected'
         default:
             return 'ERROR!'
     }
@@ -109,7 +130,6 @@ const social_public = async (body, db) => {
 const social_private = async (body, db) => {
 
     const data = body.data
-    if (!data || typeof data !== 'object') return 'Data type is not correct'
     let res;
     const CONFIG = await (await db)('CONFIG')
     const SQL = await (await db)('SQL')
@@ -117,23 +137,38 @@ const social_private = async (body, db) => {
     const socialConfig = basicConfig.social
     let friendSQL = await SQL.read('friend')
     if (typeof socialConfig !== 'object') return 'Social is not configured'
+
+    globalvar.me_endpoint = basicConfig.endpoint
+    globalvar.me_pub = socialConfig.pub
+    globalvar.me_priv = socialConfig.priv
     switch (body.type) {
         case 'SEND_FRIEND_REQUEST':
+            globalvar.friend_endpoint = data.endpoint
             if (!data.endpoint) return 'Data is not correct'
             if (!friendSQL) friendSQL = {}
+            //验证是否已经请求过
             if (typeof friendSQL[data.endpoint] !== 'undefined') {
-                  return 'Friend request has been sent'
+                return 'Friend request has been sent'
             }
-
+            //生成请求
+            
             res = await gSocial({
                 type: 'FRIEND_REQUEST',
-                endpoint: data.endpoint,
+                endpoint: globalvar.friend_endpoint,
                 data: {
-                    endpoint: basicConfig.endpoint,
-                    pub: socialConfig.pub
+                    /*
+                    ${endpoint} is the endpoint of the friend
+                    ${pub} is the public key of the myself
+                    ${sign} is the way to prove that the endpoint is the friend,and I had the private key
+                    */
+                    endpoint: globalvar.me_endpoint,
+                    friend_endpoint: globalvar.friend_endpoint,
+                    pub: globalvar.me_pub,
+                    sign: RSASign.sign(globalvar.friend_endpoint, globalvar.me_priv)
                 },
                 encrypt: false
             }).then(res => res.json())
+            console.log(res)
             if (!!res.data.ckey) {
                 friendSQL[data.endpoint] = {
                     ckey: res.data.ckey,
@@ -144,42 +179,91 @@ const social_private = async (body, db) => {
                     },
                     status: 'PENDING'
                 }
+                res = await fetch(`https://${data.endpoint}/api?type=info`).then(res => res.json())
+                friendSQL[data.endpoint].social = res.social
+                if (friendSQL[data.endpoint].social.pub === friendSQL[data.endpoint].pub) {
+                    delete friendSQL[data.endpoint].social.pub
+                } else {
+                    return 'Error With The Friend,The RSA Public Key Is Not The Same'
+                }
+
                 await SQL.write('friend', friendSQL)
                 return 'Friend request has been sent'
             }
 
             return 'ERROR!'
-        case 'LIST_FRIEND':
+
+        case 'LIST_FRIENDS':
             if (!friendSQL) friendSQL = {}
             await SQL.write('friend', friendSQL)
             return friendSQL
-        case 'RESPONSE_FRIEND_REQUEST':
-            if (!data.endpoint) return 'Data is not correct'
+        case 'ACCEPT_FRIEND_REQUEST':
+            globalvar.friend_endpoint = data.endpoint
+
+            if (!globalvar.friend_endpoint) return 'Data is not correct'
             if (!friendSQL) friendSQL = {}
             if (typeof friendSQL[data.endpoint] === 'undefined') {
                 return 'Friend request is not found'
             }
-            if (friendSQL[data.endpoint].status === data.response) {
-                return `Friend request is already ${data.response}`
+            if (friendSQL[data.endpoint].status !== 'NEED_CONFIRM') {
+                return 'Friend request is not in pending status'
             }
+            
+            globalvar.friend_ckey = friendSQL[data.endpoint].ckey
             res = await gSocial({
-                type: 'FRIEND_REQUEST_RESPONSE',
-                endpoint: data.endpoint,
+                type: 'FRIEND_REQUEST_ACCEPT',
+                endpoint: globalvar.friend_endpoint,
+                me_endpoint: globalvar.me_endpoint,
                 data: {
-                    response: data.response,
-                    ckey: friendSQL[data.endpoint].ckey
+                    endpoint: globalvar.me_endpoint,
+                    friend_endpoint: globalvar.friend_endpoint
                 },
                 encrypt: true,
-                ckey: friendSQL[data.endpoint].ckey
+                ckey: globalvar.friend_ckey
+
             }).then(res => res.json())
             if (res.ok) {
-                friendSQL[data.endpoint].status = data.response
+                friendSQL[data.endpoint].status = 'ACCEPT'
                 friendSQL[data.endpoint].time.update = Date.now()
                 await SQL.write('friend', friendSQL)
-                return 'Friend request has been responded'
-            }else{
-                return 'ERROR!'
+                return 'Friend request has been accepted'
             }
+            return 'ERROR!'
+
+        case 'REJECT_FRIEND_REQUEST':
+            globalvar.friend_endpoint = data.endpoint
+            if (!globalvar.friend_endpoint) return 'Data is not correct'
+            if (!friendSQL) friendSQL = {}
+            if (typeof friendSQL[data.endpoint] === 'undefined') {
+                return 'Friend request is not found'
+            }
+            res = await gSocial({
+                type: 'FRIEND_REQUEST_REJECT',
+                endpoint: globalvar.friend_endpoint,
+                me_endpoint: globalvar.me_endpoint,
+                data: {
+                    endpoint: globalvar.me_endpoint,
+                    friend_endpoint: globalvar.friend_endpoint
+                },
+                encrypt: true,
+                ckey: globalvar.friend_ckey
+            }).then(res => res.json())
+            if (res.ok) {
+                friendSQL[data.endpoint].status = 'REJECT'
+                friendSQL[data.endpoint].time.update = Date.now()
+                await SQL.write('friend', friendSQL)
+                return 'Friend request has been rejected'
+            }
+            return 'ERROR!'
+        case 'DELETE_FRIEND':
+            globalvar.friend_endpoint = data.endpoint
+            delete friendSQL[data.endpoint]
+            await SQL.write('friend', friendSQL)
+            return 'Friend has been deleted'
+
+
+
+
     }
 }
 const social = {
