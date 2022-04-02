@@ -14,8 +14,15 @@ const b64 = {
             return atob(data)
         }
     },
+    de_binarray:(data)=>{
+        if(typeof Buffer !== 'undefined'){
+            return Buffer.from(data, 'base64').toString('binary')
+        }else{
+            return atob(data)
+        }
+    },
     de_blob:(data)=>{
-        const byteString = b64.de(data)
+        const byteString = b64.de_binarray(data)
         const arrayBuffer = new ArrayBuffer(byteString.length);
         const intArray = new Uint8Array(arrayBuffer);
         for (let i = 0; i < byteString.length; i++) {

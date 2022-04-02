@@ -26,11 +26,9 @@ const social_public = async (body, db) => {
     const data = body.data
     
     let res, rep
-    const CONFIG = await (await db)('CONFIG')
-    const SQL = await (await db)('SQL')
-    const basicConfig = await CONFIG.read('basic')
+    const basicConfig = globalvar.DB_DATA.CONFIG.basic
     const socialConfig = basicConfig.social
-    let friendSQL = await SQL.read('friend')
+    let friendSQL =globalvar.DB_DATA.SQL.friend
     if (typeof socialConfig !== 'object') return 'Social is not configured'
 
     globalvar.me_endpoint = basicConfig.endpoint
@@ -87,7 +85,8 @@ const social_public = async (body, db) => {
                 } else {
                     return 'Error With The Friend,The RSA Public Key Is Not The Same'
                 }
-                await SQL.write('friend', friendSQL)
+                //await SQL.write('friend', friendSQL)
+                    await globalvar.DB.SQL.write('friend', friendSQL)
                 return {
                     ckey: globalvar.ckey,
                     pub: socialConfig.pub
@@ -111,7 +110,8 @@ const social_public = async (body, db) => {
             if (globalvar.res.friend_endpoint !== globalvar.me_endpoint || globalvar.res.endpoint !== globalvar.friend_endpoint) return 'Error With The Friend,The Endpoint Is Not The Same'
             friendSQL[globalvar.friend_endpoint].status = 'ACCEPT'
             friendSQL[globalvar.friend_endpoint].time.update = Date.now()
-            await SQL.write('friend', friendSQL)
+            //await SQL.write('friend', friendSQL)
+            await globalvar.DB.SQL.write('friend', friendSQL)
             return 'Friend request has been accepted'
         case 'FRIEND_REQUEST_REJECT':
             globalvar.friend_endpoint = body.endpoint
@@ -120,7 +120,8 @@ const social_public = async (body, db) => {
             if (globalvar.res.friend_endpoint !== globalvar.me_endpoint || globalvar.res.endpoint !== globalvar.friend_endpoint) return 'Error With The Friend,The Endpoint Is Not The Same'
             friendSQL[globalvar.friend_endpoint].status = 'REJECT'
             friendSQL[globalvar.friend_endpoint].time.update = Date.now()
-            await SQL.write('friend', friendSQL)
+            //await SQL.write('friend', friendSQL)
+            await globalvar.DB.SQL.write('friend', friendSQL)
             return 'Friend request has been rejected'
         default:
             return 'ERROR!'
@@ -131,11 +132,9 @@ const social_private = async (body, db) => {
 
     const data = body.data
     let res;
-    const CONFIG = await (await db)('CONFIG')
-    const SQL = await (await db)('SQL')
-    const basicConfig = await CONFIG.read('basic')
+    const basicConfig =  globalvar.DB_DATA.CONFIG.basic
     const socialConfig = basicConfig.social
-    let friendSQL = await SQL.read('friend')
+    let friendSQL = globalvar.DB_DATA.SQL.friend || {}
     if (typeof socialConfig !== 'object') return 'Social is not configured'
 
     globalvar.me_endpoint = basicConfig.endpoint
@@ -187,7 +186,8 @@ const social_private = async (body, db) => {
                     return 'Error With The Friend,The RSA Public Key Is Not The Same'
                 }
 
-                await SQL.write('friend', friendSQL)
+                //await SQL.write('friend', friendSQL)
+                await globalvar.DB.SQL.write('friend', friendSQL)
                 return 'Friend request has been sent'
             }
 
@@ -195,7 +195,8 @@ const social_private = async (body, db) => {
 
         case 'LIST_FRIENDS':
             if (!friendSQL) friendSQL = {}
-            await SQL.write('friend', friendSQL)
+            //await SQL.write('friend', friendSQL)
+            await globalvar.DB.SQL.write('friend', friendSQL)
             return friendSQL
         case 'ACCEPT_FRIEND_REQUEST':
             globalvar.friend_endpoint = data.endpoint
@@ -225,7 +226,8 @@ const social_private = async (body, db) => {
             if (res.ok) {
                 friendSQL[data.endpoint].status = 'ACCEPT'
                 friendSQL[data.endpoint].time.update = Date.now()
-                await SQL.write('friend', friendSQL)
+                //await SQL.write('friend', friendSQL)
+                await globalvar.DB.SQL.write('friend', friendSQL)
                 return 'Friend request has been accepted'
             }
             return 'ERROR!'
@@ -251,14 +253,15 @@ const social_private = async (body, db) => {
             if (res.ok) {
                 friendSQL[data.endpoint].status = 'REJECT'
                 friendSQL[data.endpoint].time.update = Date.now()
-                await SQL.write('friend', friendSQL)
+                //await SQL.write('friend', friendSQL)
+                await globalvar.DB.SQL.write('friend', friendSQL)
                 return 'Friend request has been rejected'
             }
             return 'ERROR!'
         case 'DELETE_FRIEND':
             globalvar.friend_endpoint = data.endpoint
-            delete friendSQL[data.endpoint]
-            await SQL.write('friend', friendSQL)
+            delete friendSQL[globalvar.friend_endpoint]
+            globalvar.DB.SQL.write('friend', friendSQL)
             return 'Friend has been deleted'
 
 

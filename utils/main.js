@@ -14,6 +14,7 @@ import tester from './app/test.js'
 import b64 from './src/b64.js'
 import cons from './src/cons.js'
 import social from './app/social/index.js'
+import writelogs from './src/writelogs.js'
 globalvar.info = {
     version: "0.0.1-beta-20"
 }
@@ -31,21 +32,27 @@ const handle = async (req, db) => {
             version: globalvar.info.version
         })
     }
-    const CONFIG = await (await db)('CONFIG')
-    const SQL = await (await db)('SQL')
-    globalvar.install = await CONFIG.read('install')
+    globalvar.DB = globalvar.DB || {}
+    globalvar.DB_DATA = globalvar.DB_DATA || {}
+    globalvar.DB.CONFIG = await (await db)('CONFIG')
+    globalvar.DB.SQL = await (await db)('SQL')
+    globalvar.DB_DATA.SQL = await globalvar.DB.SQL.list()
+    globalvar.DB_DATA.CONFIG = await globalvar.DB.CONFIG.list()
 
-    if (!globalvar.install) {
+    globalvar.basicConfig = globalvar.DB_DATA.CONFIG.basic
+    if (!globalvar.DB_DATA.CONFIG.install) {
         if (q('type') == 'test') return tester(req, db)
         if (q('type') == 'upload') {
             globalvar.data = JSON.parse(q('data'))
             for (var i in globalvar.data) {
-                await CONFIG.write(i, globalvar.data[i])
+                // await CONFIG.write(i, globalvar.data[i])
+                await globalvar.DB.CONFIG.write(i, globalvar.data[i])
             }
-            await CONFIG.write('install', true)
+            //await CONFIG.write('install', true)
+            await globalvar.DB.CONFIG.write('install', true)
             return gres({
                 ok: 1,
-                data: await CONFIG.list()
+                data: await globalvar.DB.CONFIG.list()
             })
         }
         return gres({
@@ -55,33 +62,40 @@ const handle = async (req, db) => {
             version: globalvar.info.version
         })
     }
-    globalvar.basicConfig = await CONFIG.read('basic')
-    if (typeof globalvar.basicConfig === 'undefined') {
+
+    if (typeof globalvar.DB_DATA.CONFIG.install == 'undefined') {
         //意外退出
         return gres({ ok: 0, data: "绝对的异常错误,无法找到基础Hexo设置" })
 
-    } else if (typeof globalvar.basicConfig.key === 'undefined') {
-        globalvar.basicConfig.key = guuid()
-        await CONFIG.write('basic', globalvar.basicConfig)
+        //} else if (typeof globalvar.basicConfig.key === 'undefined') {
+    } else if (typeof globalvar.DB_DATA.CONFIG.basic.key === 'undefined') {
+        globalvar.DB_DATA.CONFIG.basic.key = guuid()
+        //await CONFIG.write('basic', globalvar.DB_DATA.CONFIG.basic)
+        await globalvar.DB.CONFIG.write('basic', globalvar.DB_DATA.CONFIG.basic)
     }
 
     globalvar.sign = gauth.gsign(
-        globalvar.basicConfig.key,
+        //globalvar.basicConfig.key,
+        globalvar.DB_DATA.CONFIG.basic.key,
         q('username'),
         q('password')
     )
     globalvar.admin = gauth.gcheck(
-        globalvar.basicConfig.key,
-        globalvar.basicConfig.username,
-        globalvar.basicConfig.password,
+        //globalvar.basicConfig.key,
+        //globalvar.basicConfig.username,
+        //globalvar.basicConfig.password,
+        globalvar.DB_DATA.CONFIG.basic.key,
+        globalvar.DB_DATA.CONFIG.basic.username,
+        globalvar.DB_DATA.CONFIG.basic.password,
         q('token')
     )
-    console.log(globalvar.admin)
-    globalvar.wexaLog = await SQL.read('wexaLog') || []
+    //console.log(globalvar.admin)
+    globalvar.wexaLog = globalvar.DB_DATA.SQL.wexaLog || []
     switch (q('type')) {
         case 'file':
             if (!globalvar.admin) return gres({ ok: 0, admin: 0 })
-            globalvar.hexoConfig = await CONFIG.read('hexo')
+            globalvar.hexoConfig = globalvar.DB_DATA.CONFIG.hexo
+            
             switch (q('action')) {
                 case 'list':
                     return gres({
@@ -90,15 +104,16 @@ const handle = async (req, db) => {
                             token: globalvar.hexoConfig.token,
                             repo: globalvar.hexoConfig['repo'],
                             path: q('path')
-                        }))['data']
+                        })).data
                     })
             }
         case 'img':
             if (!globalvar.admin) return gres({ ok: 0, admin: 0 })
-            globalvar.imgConfig = await CONFIG.read('img')
-            if (!globalvar.imgConfig || globalvar.imgConfig.length == 0) return gres({ ok: 0, img: 0 })
-            globalvar.imgConfig = globalvar.imgConfig[0]
-            globalvar.imgList = await SQL.read('img') || {
+            //globalvar.imgConfig = await CONFIG.read('img')
+            //if (!globalvar.imgConfig || globalvar.imgConfig.length == 0) return gres({ ok: 0, img: 0 })
+            if (!globalvar.DB_DATA.CONFIG.img || globalvar.DB_DATA.CONFIG.img.length == 0) return gres({ ok: 0, img: 0 })
+            globalvar.imgConfig = globalvar.DB_DATA.CONFIG.img[0]
+            globalvar.imgList = globalvar.DB_DATA.SQL.img || {
                 count: 0,
                 data: {}
 
@@ -108,22 +123,18 @@ const handle = async (req, db) => {
             switch (q('action')) {
                 case 'upload':
                     const formData = new globalvar.FormData()
-                    formData.append(globalvar.imgConfig.fieldName, b64.de_blob(req.body), `${new Date().getTime()}.jpg`)
-
+                    formData.append(globalvar.imgConfig.fieldName, await b64.de_blob(req.body), `${new Date().getTime()}.jpg`)
                     switch (globalvar.imgConfig.type) {
                         case 'http':
-
                             return gres({
                                 ok: 1,
                                 data: await (async () => {
                                     const download_res = await (await fetch(globalvar.imgConfig.url, {
                                         method: 'POST',
                                         body: formData,
-                                        headers: {
-                                            ...globalvar.imgConfig.headers
-                                        }
+                                        headers: globalvar.imgConfig.headers
                                     })).json()
-
+                                    console.log(download_res)
                                     for (var q in globalvar.imgConfig.path) {
                                         const path_list = globalvar.imgConfig.path[q].split('.')
 
@@ -149,14 +160,15 @@ const handle = async (req, db) => {
                                             time: new Date().getTime()
                                         }
                                         globalvar.imgList.count += 1
-                                        await SQL.write('img', globalvar.imgList)
-                                        globalvar.wexaLog.push({
+                                        await globalvar.DB.SQL.write('img', globalvar.imgList)
+                                        /*globalvar.wexaLog.push({
                                             time: new Date().getTime(),
                                             type: 'img',
                                             action: 'upload'
                                         })
-                                        await SQL.write('wexaLog', globalvar.wexaLog)
-
+                                        await globalvar.DB.SQL.write('wexaLog', globalvar.wexaLog)
+*/
+                                        await writelogs('img', 'upload')
                                         return resurl
                                     }
                                     return 'ERROR,the path is not correct'
@@ -191,15 +203,16 @@ const handle = async (req, db) => {
                             delete globalvar.imgList.data[i]
                         }
                     }
-                    await SQL.write('img', globalvar.imgList)
+                    await globalvar.DB.SQL.write('img', globalvar.imgList)/*
                     globalvar.wexaLog.push({
                         time: new Date().getTime(),
                         type: 'img',
                         action: 'delete',
                         data: q('url')
                     })
-                    await SQL.write('wexaLog', globalvar.wexaLog)
-
+                    await globalvar.DB.SQL.write('wexaLog', globalvar.wexaLog)
+*/
+                    await writelogs('img', 'delete', q('url'))
                     return gres({
                         ok: 1
                     })
@@ -208,7 +221,7 @@ const handle = async (req, db) => {
 
         case 'hexo':
             if (!globalvar.admin) return gres({ ok: 0, admin: 0 })
-            globalvar.hexoConfig = await CONFIG.read('hexo')
+           globalvar.hexoConfig = globalvar.DB_DATA.CONFIG.hexo
 
             switch (q('action')) {
                 case "config":
@@ -217,12 +230,14 @@ const handle = async (req, db) => {
                         data: globalvar.hexoConfig
                     })
                 case 'dispatch':
-                    globalvar.wexaLog.push({
+                    /*globalvar.wexaLog.push({
                         time: new Date().getTime(),
                         type: 'hexo',
                         action: 'dispatch'
                     })
-                    await SQL.write('wexaLog', globalvar.wexaLog)
+                    await globalvar.DB.SQL.write('wexaLog', globalvar.wexaLog)
+                    */
+                    await writelogs('hexo', 'dispatch')
                     return gres({
                         ok: 1,
                         data: await github.workflow.dispatch({
@@ -233,12 +248,14 @@ const handle = async (req, db) => {
                         })
                     })
                 case 'cancel':
-                    globalvar.wexaLog.push({
+                    /*globalvar.wexaLog.push({
                         time: new Date().getTime(),
                         type: 'hexo',
                         action: 'cancel'
                     })
-                    await SQL.write('wexaLog', globalvar.wexaLog)
+                    await globalvar.DB.SQL.write('wexaLog', globalvar.wexaLog)
+                    */
+                    await writelogs('hexo', 'cancel')
                     return gres({
                         ok: 1,
                         data: await github.run.cancel({
@@ -292,14 +309,15 @@ const handle = async (req, db) => {
                     })
                 case 'upload':
 
-                    globalvar.wexaLog.push({
+                    /*globalvar.wexaLog.push({
                         time: new Date().getTime(),
                         type: 'hexo',
                         data: q('path'),
                         action: 'upload'
                     })
-                    await SQL.write('wexaLog', globalvar.wexaLog)
-
+                    await globalvar.DB.SQL.write('wexaLog', globalvar.wexaLog)
+*/
+                    await writelogs('hexo', 'upload', q('path'))
                     return gres({
                         ok: 1,
                         data: await hexo.app.upload({
@@ -311,13 +329,15 @@ const handle = async (req, db) => {
                         })
                     })
                 case 'delete':
-                    globalvar.wexaLog.push({
+                    /*globalvar.wexaLog.push({
                         time: new Date().getTime(),
                         type: 'hexo',
                         action: 'delete',
                         data: q('path')
                     })
-                    await SQL.write('wexaLog', globalvar.wexaLog)
+                    await globalvar.DB.SQL.write('wexaLog', globalvar.wexaLog)
+                    */
+                    await writelogs('hexo', 'delete', q('path'))
                     return gres({
                         ok: 1,
                         data: await hexo.app.delete({
@@ -328,13 +348,9 @@ const handle = async (req, db) => {
                         })
                     })
                 case 'move':
-                    globalvar.wexaLog.push({
-                        time: new Date().getTime(),
-                        type: 'hexo',
-                        action: 'move',
-                        data: `${q('path')} to ${q('newpath')}`
-                    })
-                    await SQL.write('wexaLog', globalvar.wexaLog)
+                   
+                    
+                    await writelogs('hexo','move',`${q('path')} to ${q('newpath')}`)
                     return gres({
                         ok: 1,
                         data: await github.file.move({
@@ -389,7 +405,7 @@ const handle = async (req, db) => {
                     return gres({
                         ok: 1,
                         data: await (async (start, end, nodata) => {
-                            var log = await SQL.read('wexaLog')
+                            var log = await globalvar.DB.SQL.read('wexaLog')
                             log = log.filter(item => {
                                 return item.time >= start && item.time <= end
                             })
@@ -418,7 +434,7 @@ const handle = async (req, db) => {
         case 'config':
             if (!globalvar.admin) return gres({ ok: 0 })
 
-            const ALL_CONFIG = await CONFIG.list()
+            const ALL_CONFIG  = globalvar.DB_DATA.CONFIG
             switch (q('action')) {
                 case 'list':
                     ALL_CONFIG['hexo']['token'] = '!!GithubToken被保护!!'
@@ -432,7 +448,8 @@ const handle = async (req, db) => {
                     ALL_UPLOAD_CONFIG['hexo']['token'] = ALL_CONFIG['hexo']['token']
                     ALL_UPLOAD_CONFIG['basic']['password'] = ALL_CONFIG['basic']['password']
                     for (var i in ALL_UPLOAD_CONFIG) {
-                        await CONFIG.write(i, ALL_UPLOAD_CONFIG[i])
+                        //await CONFIG.write(i, ALL_UPLOAD_CONFIG[i])
+                        await globalvar.DB.CONFIG.write(i, ALL_UPLOAD_CONFIG[i])
                     }
                     return gres({ ok: 1 })
 
@@ -442,11 +459,10 @@ const handle = async (req, db) => {
                     })
             }
         default:
-            delete globalvar.basicConfig.social.priv
             return gres({
                 ok: 1,
                 db: 1,
-                install: globalvar.install,
+                install: globalvar.DB_DATA.CONFIG.install,
                 admin: globalvar.admin,
                 version: globalvar.info.version,
                 social: globalvar.basicConfig.social

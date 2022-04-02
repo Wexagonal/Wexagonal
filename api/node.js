@@ -51,11 +51,11 @@ http.createServer(async (req, res) => {
         res.writeHead(rep.status || 200, rep.headers)
         cons.s(`响应请求: ${PUBLIC_URL} 时间: ${new Date().toLocaleString()} 耗时: ${new Date().getTime() - t1}ms`)
         res.end(rep.body)
-    }).catch(e => {
+    })/*.catch(e => {
         cons.e(`响应请求: ${PUBLIC_URL} 时间: ${new Date().toLocaleString()} 耗时: ${new Date().getTime() - t1}ms 错误: ${e}`)
         res.writeHead(500)
         res.end()
-    })
+    })*/
 }).listen(NODE_DEFAULT_PORT)
 
 
